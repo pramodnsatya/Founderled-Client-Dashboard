@@ -14,7 +14,7 @@ async function fetchEmailBison(domain: string, apiKey: string, endpoint: string)
       console.error(`[EmailBison] ${endpoint} → ${res.status}: ${text.slice(0, 300)}`);
       return { _error: res.status, _body: text.slice(0, 300) };
     }
-    try { return JSON.parse(text); } 
+    try { return JSON.parse(text); }
     catch { return { _error: 'parse', _body: text.slice(0, 300) }; }
   } catch (e) {
     console.error(`[EmailBison] fetch error:`, e);
@@ -50,9 +50,8 @@ export async function GET(req: NextRequest) {
   let clientId = requestedClientId;
   if (payload.role === 'client') {
     clientId = payload.clientId || null;
-    if (requestedClientId && requestedClientId !== clientId) {
+    if (requestedClientId && requestedClientId !== clientId)
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
   }
   if (!clientId) return NextResponse.json({ error: 'Client ID required' }, { status: 400 });
 
@@ -68,7 +67,8 @@ export async function GET(req: NextRequest) {
 
   const bisonRaw = bisonCampaignsRaw.status === 'fulfilled' ? bisonCampaignsRaw.value : null;
   const linkedinCampaigns = heyreachCampaignsRaw.status === 'fulfilled' ? heyreachCampaignsRaw.value : null;
-  const linkedinStats = heyreachStatsRaw.status === 'fulfilled' ? heyreachStatsRaw.value : null;
+  // HeyReach GetOverallStats returns { overallStats: {...}, byDayStats: {...} } at root level
+  const linkedinStatsRaw = heyreachStatsRaw.status === 'fulfilled' ? heyreachStatsRaw.value : null;
 
   // ── EMAIL BISON ────────────────────────────────────────────────────────────
   let emailAgg = {
@@ -78,95 +78,116 @@ export async function GET(req: NextRequest) {
   };
   const processedEmailCampaigns: object[] = [];
 
-  // Unwrap array from any wrapper key
   let emailArr: Record<string, unknown>[] | null = null;
   if (Array.isArray(bisonRaw)) {
     emailArr = bisonRaw;
-  } else if (bisonRaw && !(bisonRaw as Record<string,unknown>)._error) {
+  } else if (bisonRaw && !(bisonRaw as Record<string, unknown>)._error) {
     for (const key of ['data', 'campaigns', 'items', 'results', 'records']) {
       const val = (bisonRaw as Record<string, unknown>)[key];
-      if (Array.isArray(val)) { emailArr = val as Record<string,unknown>[]; break; }
+      if (Array.isArray(val)) { emailArr = val as Record<string, unknown>[]; break; }
     }
   }
 
   if (emailArr && emailArr.length > 0) {
     emailAgg.totalCampaigns = emailArr.length;
     for (const campaign of emailArr) {
-      const stats = (campaign.stats || campaign.analytics || campaign.email_stats || campaign.metrics || {}) as Record<string, number>;
-      const sent = stats.emails_sent ?? stats.sent ?? stats.total_sent ?? 0;
-      const leadsContacted = stats.total_leads_contacted ?? stats.leads_contacted ?? sent;
-      const replies = stats.unique_replies ?? stats.replies ?? 0;
-      const bounces = stats.bounced ?? stats.bounces ?? 0;
-      const opens = stats.unique_opens ?? stats.opens ?? 0;
-      const clicks = stats.clicked ?? stats.clicks ?? 0;
+      // EmailBison stats can live directly on campaign OR under campaign.stats
+      const statsObj = (campaign.stats || campaign.analytics || campaign.email_stats || {}) as Record<string, number>;
+      // Try both flat (on campaign) and nested (in stats)
+      const get = (flat: string, nested: string) =>
+        (campaign[flat] as number) ?? (statsObj[flat] as number) ?? (statsObj[nested] as number) ?? 0;
 
-      emailAgg.totalSent += sent;
+      const sent    = get('emails_sent', 'sent') || (campaign.total_sent as number) || 0;
+      const replies = get('unique_replies', 'replies') || (campaign.replies as number) || 0;
+      const bounces = get('bounced', 'bounces') || (campaign.bounces as number) || 0;
+      const opens   = get('unique_opens', 'opens') || (campaign.opens as number) || 0;
+      const clicks  = get('clicked', 'clicks') || (campaign.clicks as number) || 0;
+
+      emailAgg.totalSent    += sent;
       emailAgg.totalReplies += replies;
       emailAgg.totalBounces += bounces;
-      emailAgg.totalOpens += opens;
-      emailAgg.totalClicks += clicks;
+      emailAgg.totalOpens   += opens;
+      emailAgg.totalClicks  += clicks;
 
       const statusRaw = ((campaign.status as string) || '').toLowerCase();
       if (['active', 'running', 'in_progress', 'sending', 'scheduled'].includes(statusRaw)) emailAgg.activeCampaigns++;
 
-      const denom = leadsContacted > 0 ? leadsContacted : sent;
       processedEmailCampaigns.push({
         id: campaign.id, name: campaign.name, status: campaign.status,
-        sent, leadsContacted, replies, bounces, opens, clicks,
-        replyRate: denom > 0 ? ((replies / denom) * 100).toFixed(1) : '0',
-        bounceRate: denom > 0 ? ((bounces / denom) * 100).toFixed(1) : '0',
-        openRate: denom > 0 ? ((opens / denom) * 100).toFixed(1) : '0',
-        clickRate: denom > 0 ? ((clicks / denom) * 100).toFixed(1) : '0',
+        sent, replies, bounces, opens, clicks,
+        replyRate:  sent > 0 ? ((replies / sent) * 100).toFixed(1) : '0',
+        bounceRate: sent > 0 ? ((bounces / sent) * 100).toFixed(1) : '0',
+        openRate:   sent > 0 ? ((opens   / sent) * 100).toFixed(1) : '0',
+        clickRate:  sent > 0 ? ((clicks  / sent) * 100).toFixed(1) : '0',
         startedAt: campaign.created_at || campaign.started_at,
       });
     }
     const d = emailAgg.totalSent;
     if (d > 0) {
-      emailAgg.replyRate = parseFloat(((emailAgg.totalReplies / d) * 100).toFixed(1));
+      emailAgg.replyRate  = parseFloat(((emailAgg.totalReplies / d) * 100).toFixed(1));
       emailAgg.bounceRate = parseFloat(((emailAgg.totalBounces / d) * 100).toFixed(1));
-      emailAgg.openRate = parseFloat(((emailAgg.totalOpens / d) * 100).toFixed(1));
-      emailAgg.clickRate = parseFloat(((emailAgg.totalClicks / d) * 100).toFixed(1));
+      emailAgg.openRate   = parseFloat(((emailAgg.totalOpens   / d) * 100).toFixed(1));
+      emailAgg.clickRate  = parseFloat(((emailAgg.totalClicks  / d) * 100).toFixed(1));
     }
   }
 
   // ── HEYREACH ───────────────────────────────────────────────────────────────
+  // Real response shape from GetOverallStats:
+  // { overallStats: { connectionsSent, connectionsAccepted, messagesSent, totalMessageReplies,
+  //                   messageReplyRate (0-1 ratio), connectionAcceptanceRate (0-1 ratio), ... },
+  //   byDayStats: { "2025-03-18T00:00:00Z": { connectionsSent, connectionsAccepted, ... } } }
+
   let linkedinAgg = {
-    totalConnectionsSent: 0, totalConnectionsAccepted: 0, totalMessagesSent: 0,
-    totalReplies: 0, acceptanceRate: 0, replyRate: 0,
+    totalConnectionsSent: 0, totalConnectionsAccepted: 0,
+    totalMessagesSent: 0, totalReplies: 0,
+    acceptanceRate: 0, replyRate: 0,
     activeCampaigns: 0, totalCampaigns: 0,
   };
   const processedLinkedinCampaigns: object[] = [];
+
+  // Parse overall stats — they live at root level under "overallStats" key
+  const os = linkedinStatsRaw?.overallStats;
+  if (os) {
+    linkedinAgg.totalConnectionsSent     = os.connectionsSent     || 0;
+    linkedinAgg.totalConnectionsAccepted = os.connectionsAccepted || 0;
+    linkedinAgg.totalMessagesSent        = os.messagesSent        || 0;
+    linkedinAgg.totalReplies             = os.totalMessageReplies || 0;
+    // These are already 0-1 ratios — multiply by 100 for percentage display
+    linkedinAgg.acceptanceRate = parseFloat(((os.connectionAcceptanceRate || 0) * 100).toFixed(1));
+    linkedinAgg.replyRate      = parseFloat(((os.messageReplyRate         || 0) * 100).toFixed(1));
+  }
 
   if (linkedinCampaigns?.items && Array.isArray(linkedinCampaigns.items)) {
     linkedinAgg.totalCampaigns = linkedinCampaigns.totalCount || linkedinCampaigns.items.length;
     for (const c of linkedinCampaigns.items) {
       const ps = c.progressStats || {};
-      const isActive = c.status === 'IN_PROGRESS' || c.status === 'STARTING';
-      if (isActive) linkedinAgg.activeCampaigns++;
+      if (c.status === 'IN_PROGRESS' || c.status === 'STARTING') linkedinAgg.activeCampaigns++;
       processedLinkedinCampaigns.push({
         id: c.id, name: c.name, status: c.status,
-        total: ps.totalUsers || 0, inProgress: ps.totalUsersInProgress || 0,
-        finished: ps.totalUsersFinished || 0, failed: ps.totalUsersFailed || 0,
-        listName: c.linkedInUserListName, startedAt: c.startedAt, createdAt: c.creationTime,
+        total:      ps.totalUsers           || 0,
+        inProgress: ps.totalUsersInProgress || 0,
+        finished:   ps.totalUsersFinished   || 0,
+        failed:     ps.totalUsersFailed     || 0,
+        listName: c.linkedInUserListName,
+        startedAt: c.startedAt,
+        createdAt: c.creationTime,
       });
     }
   }
 
-  if (linkedinStats?.overallStats) {
-    const os = linkedinStats.overallStats;
-    linkedinAgg.totalConnectionsSent = os.connectionsSent || 0;
-    linkedinAgg.totalConnectionsAccepted = os.connectionsAccepted || 0;
-    linkedinAgg.totalMessagesSent = os.messagesSent || 0;
-    linkedinAgg.totalReplies = os.totalMessageReplies || 0;
-    linkedinAgg.acceptanceRate = parseFloat(((os.connectionAcceptanceRate || 0) * 100).toFixed(1));
-    linkedinAgg.replyRate = parseFloat(((os.messageReplyRate || 0) * 100).toFixed(1));
-  }
-
-  const linkedinTimeSeries = linkedinStats?.byDayStats
-    ? Object.entries(linkedinStats.byDayStats)
-        .map(([date, stats]) => {
-          const s = stats as Record<string, number>;
-          return { date: date.split('T')[0], connectionsSent: s.connectionsSent || 0, connectionsAccepted: s.connectionsAccepted || 0, messages: s.messagesSent || 0, replies: s.totalMessageReplies || 0 };
+  // byDayStats: sum last 30 active days
+  const byDay = linkedinStatsRaw?.byDayStats;
+  const linkedinTimeSeries = byDay
+    ? Object.entries(byDay)
+        .map(([date, s]) => {
+          const stats = s as Record<string, number>;
+          return {
+            date: date.split('T')[0],
+            connectionsSent:     stats.connectionsSent     || 0,
+            connectionsAccepted: stats.connectionsAccepted || 0,
+            messages:            stats.messagesSent        || 0,
+            replies:             stats.totalMessageReplies || 0,
+          };
         })
         .filter(d => d.connectionsSent > 0 || d.connectionsAccepted > 0)
         .slice(-30)
@@ -174,7 +195,19 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     client: { id: client.id, name: client.name },
-    email: { aggregate: emailAgg, campaigns: processedEmailCampaigns, _debug: { rawKeys: bisonRaw ? Object.keys(bisonRaw) : null, error: (bisonRaw as Record<string,unknown>)?._error || null } },
-    linkedin: { aggregate: linkedinAgg, campaigns: processedLinkedinCampaigns, timeSeries: linkedinTimeSeries },
+    email: {
+      aggregate: emailAgg,
+      campaigns: processedEmailCampaigns,
+      _debug: {
+        rawKeys: bisonRaw ? Object.keys(bisonRaw as object) : null,
+        error: (bisonRaw as Record<string, unknown>)?._error || null,
+        firstCampaignKeys: emailArr?.[0] ? Object.keys(emailArr[0]) : null,
+      },
+    },
+    linkedin: {
+      aggregate: linkedinAgg,
+      campaigns: processedLinkedinCampaigns,
+      timeSeries: linkedinTimeSeries,
+    },
   });
 }
