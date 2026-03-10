@@ -76,6 +76,8 @@ export default function DashboardPage() {
   const [showAddClient, setShowAddClient] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client', clientId: '' });
   const [newClient, setNewClient] = useState({ name: '', emailBisonKey: '', emailBisonDomain: 'send.founderled.io', heyreachKey: '' });
+  const [emailPage, setEmailPage] = useState(1);
+  const EMAIL_PAGE_SIZE = 15;
   const router = useRouter();
 
   useEffect(() => {
@@ -157,14 +159,11 @@ export default function DashboardPage() {
     <div style={S.page}>
       {/* Sidebar */}
       <aside style={S.sidebar}>
-        <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid #e2e5ef' }}>
+        <div style={{ padding: '16px 18px 14px', borderBottom: '1px solid #e2e5ef' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '30px', height: '30px', background: ACCENT, borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 11L7 2L12 11H2Z" fill="white" /></svg>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f1729', letterSpacing: '-0.3px' }}>Founderled.io</div>
-              <div style={{ fontSize: '10px', color: '#94a3b8' }}>Campaign Intelligence</div>
+            <div style={{ background: '#ffffff', borderRadius: '8px', padding: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Founderled.io" style={{ width: '120px', height: 'auto', display: 'block' }} />
             </div>
           </div>
         </div>
@@ -307,34 +306,64 @@ export default function DashboardPage() {
 
                 {emailCampaigns.length > 0 ? (
                   <div style={S.card}>
-                    <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '16px', color: '#0f1729' }}>Email Campaigns ({emailCampaigns.length})</h3>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                            {['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %'].map(h => (
-                              <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#64748b', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                          {emailCampaigns.map((c: any) => (
-                            <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}
-                              onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
-                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                              <td style={{ padding: '10px 12px', color: '#0f1729', fontWeight: 500, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
-                              <td style={{ padding: '10px 12px' }}><StatusBadge status={c.status} /></td>
-                              <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.sent || 0).toLocaleString()}</td>
-                              <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.replies || 0).toLocaleString()}</td>
-                              <td style={{ padding: '10px 12px', color: ACCENT, fontWeight: 600 }}>{c.replyRate}%</td>
-                              <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.bounces || 0).toLocaleString()}</td>
-                              <td style={{ padding: '10px 12px', color: parseFloat(c.bounceRate) > 5 ? '#dc2626' : '#0f1729' }}>{c.bounceRate}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Header with pagination controls */}
+                    {(() => {
+                      const totalPages = Math.ceil(emailCampaigns.length / EMAIL_PAGE_SIZE);
+                      const pagedCampaigns = emailCampaigns.slice((emailPage - 1) * EMAIL_PAGE_SIZE, emailPage * EMAIL_PAGE_SIZE);
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <h3 style={{ fontWeight: 600, fontSize: '14px', color: '#0f1729', margin: 0 }}>
+                              Email Campaigns ({emailCampaigns.length})
+                            </h3>
+                            {totalPages > 1 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
+                                <button
+                                  onClick={() => setEmailPage(p => Math.max(1, p - 1))}
+                                  disabled={emailPage === 1}
+                                  style={{ background: 'none', border: '1px solid #e2e5ef', borderRadius: '6px', width: '28px', height: '28px', cursor: emailPage === 1 ? 'default' : 'pointer', color: emailPage === 1 ? '#cbd5e1' : '#0f1729', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  ‹
+                                </button>
+                                <span style={{ fontSize: '12px' }}>Page {emailPage} of {totalPages}</span>
+                                <button
+                                  onClick={() => setEmailPage(p => Math.min(totalPages, p + 1))}
+                                  disabled={emailPage === totalPages}
+                                  style={{ background: 'none', border: '1px solid #e2e5ef', borderRadius: '6px', width: '28px', height: '28px', cursor: emailPage === totalPages ? 'default' : 'pointer', color: emailPage === totalPages ? '#cbd5e1' : '#0f1729', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  ›
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                  {['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %'].map(h => (
+                                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#64748b', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {(pagedCampaigns as any[]).map((c: any) => (
+                                  <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                    <td style={{ padding: '10px 12px', color: '#0f1729', fontWeight: 500, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
+                                    <td style={{ padding: '10px 12px' }}><StatusBadge status={c.status} /></td>
+                                    <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.sent || 0).toLocaleString()}</td>
+                                    <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.replies || 0).toLocaleString()}</td>
+                                    <td style={{ padding: '10px 12px', color: ACCENT, fontWeight: 600 }}>{c.replyRate}%</td>
+                                    <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.bounces || 0).toLocaleString()}</td>
+                                    <td style={{ padding: '10px 12px', color: parseFloat(c.bounceRate) > 5 ? '#dc2626' : '#0f1729' }}>{c.bounceRate}%</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div style={{ ...S.card, textAlign: 'center', padding: '48px', color: '#64748b' }}>

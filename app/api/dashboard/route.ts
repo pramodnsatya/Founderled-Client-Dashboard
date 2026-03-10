@@ -59,34 +59,56 @@ export async function GET(req: NextRequest) {
   const client = db.clients.find(c => c.id === clientId);
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
-  const [bisonCampaignsRaw, heyreachCampaignsRaw, heyreachStatsRaw] = await Promise.allSettled([
-    fetchEmailBison(client.emailBisonDomain, client.emailBisonKey, '/campaigns?limit=100'),
+  // Fetch ALL Email Bison campaigns with pagination (default page size is often 15)
+  let allBisonCampaigns: Record<string, unknown>[] = [];
+  let bisonRawForDebug: Record<string, unknown> | null = null;
+  let bisonFetchError: unknown = null;
+  try {
+    let page = 1;
+    while (true) {
+      const raw = await fetchEmailBison(client.emailBisonDomain, client.emailBisonKey, `/campaigns?limit=100&page=${page}`);
+      if (!bisonRawForDebug) bisonRawForDebug = raw;
+      if (!raw || (raw as Record<string,unknown>)._error) { bisonFetchError = (raw as Record<string,unknown>)?._error || 'fetch_failed'; break; }
+
+      let arr: Record<string,unknown>[] | null = null;
+      if (Array.isArray(raw)) {
+        arr = raw;
+      } else {
+        for (const key of ['data', 'campaigns', 'items', 'results', 'records']) {
+          const val = (raw as Record<string,unknown>)[key];
+          if (Array.isArray(val)) { arr = val as Record<string,unknown>[]; break; }
+        }
+      }
+      if (!arr || arr.length === 0) break;
+      allBisonCampaigns = allBisonCampaigns.concat(arr);
+
+      // Check if there are more pages
+      const meta = (raw as Record<string,unknown>).meta as Record<string,unknown> | undefined;
+      const totalPages = meta?.last_page || (raw as Record<string,unknown>).last_page;
+      const currentPage = meta?.current_page || (raw as Record<string,unknown>).current_page || page;
+      if (!totalPages || Number(currentPage) >= Number(totalPages) || arr.length < 15) break;
+      page++;
+      if (page > 20) break; // safety cap
+    }
+  } catch(e) { bisonFetchError = String(e); }
+
+  const [heyreachCampaignsRaw, heyreachStatsRaw] = await Promise.allSettled([
     fetchHeyReach(client.heyreachKey, '/campaign/GetAll', 'POST', { limit: 100, offset: 0 }),
     fetchHeyReach(client.heyreachKey, '/campaign/GetOverallStats', 'POST', { accountIds: [], campaignIds: [] }),
   ]);
-
-  const bisonRaw = bisonCampaignsRaw.status === 'fulfilled' ? bisonCampaignsRaw.value : null;
   const linkedinCampaigns = heyreachCampaignsRaw.status === 'fulfilled' ? heyreachCampaignsRaw.value : null;
   // HeyReach GetOverallStats returns { overallStats: {...}, byDayStats: {...} } at root level
   const linkedinStatsRaw = heyreachStatsRaw.status === 'fulfilled' ? heyreachStatsRaw.value : null;
 
   // ── EMAIL BISON ────────────────────────────────────────────────────────────
   let emailAgg = {
-    totalSent: 0, totalReplies: 0, totalBounces: 0, totalOpens: 0, totalClicks: 0,
-    replyRate: 0, bounceRate: 0, openRate: 0, clickRate: 0,
+    totalSent: 0, totalReplies: 0, totalBounces: 0,
+    replyRate: 0, bounceRate: 0,
     activeCampaigns: 0, totalCampaigns: 0,
   };
   const processedEmailCampaigns: object[] = [];
 
-  let emailArr: Record<string, unknown>[] | null = null;
-  if (Array.isArray(bisonRaw)) {
-    emailArr = bisonRaw;
-  } else if (bisonRaw && !(bisonRaw as Record<string, unknown>)._error) {
-    for (const key of ['data', 'campaigns', 'items', 'results', 'records']) {
-      const val = (bisonRaw as Record<string, unknown>)[key];
-      if (Array.isArray(val)) { emailArr = val as Record<string, unknown>[]; break; }
-    }
-  }
+  const emailArr = allBisonCampaigns.length > 0 ? allBisonCampaigns : null;
 
   if (emailArr && emailArr.length > 0) {
     emailAgg.totalCampaigns = emailArr.length;
@@ -100,25 +122,19 @@ export async function GET(req: NextRequest) {
       const sent    = get('emails_sent', 'sent') || (campaign.total_sent as number) || 0;
       const replies = get('unique_replies', 'replies') || (campaign.replies as number) || 0;
       const bounces = get('bounced', 'bounces') || (campaign.bounces as number) || 0;
-      const opens   = get('unique_opens', 'opens') || (campaign.opens as number) || 0;
-      const clicks  = get('clicked', 'clicks') || (campaign.clicks as number) || 0;
 
       emailAgg.totalSent    += sent;
       emailAgg.totalReplies += replies;
       emailAgg.totalBounces += bounces;
-      emailAgg.totalOpens   += opens;
-      emailAgg.totalClicks  += clicks;
 
       const statusRaw = ((campaign.status as string) || '').toLowerCase();
       if (['active', 'running', 'in_progress', 'sending', 'scheduled'].includes(statusRaw)) emailAgg.activeCampaigns++;
 
       processedEmailCampaigns.push({
         id: campaign.id, name: campaign.name, status: campaign.status,
-        sent, replies, bounces, opens, clicks,
+        sent, replies, bounces,
         replyRate:  sent > 0 ? ((replies / sent) * 100).toFixed(1) : '0',
         bounceRate: sent > 0 ? ((bounces / sent) * 100).toFixed(1) : '0',
-        openRate:   sent > 0 ? ((opens   / sent) * 100).toFixed(1) : '0',
-        clickRate:  sent > 0 ? ((clicks  / sent) * 100).toFixed(1) : '0',
         startedAt: campaign.created_at || campaign.started_at,
       });
     }
@@ -126,8 +142,6 @@ export async function GET(req: NextRequest) {
     if (d > 0) {
       emailAgg.replyRate  = parseFloat(((emailAgg.totalReplies / d) * 100).toFixed(1));
       emailAgg.bounceRate = parseFloat(((emailAgg.totalBounces / d) * 100).toFixed(1));
-      emailAgg.openRate   = parseFloat(((emailAgg.totalOpens   / d) * 100).toFixed(1));
-      emailAgg.clickRate  = parseFloat(((emailAgg.totalClicks  / d) * 100).toFixed(1));
     }
   }
 
@@ -199,8 +213,9 @@ export async function GET(req: NextRequest) {
       aggregate: emailAgg,
       campaigns: processedEmailCampaigns,
       _debug: {
-        rawKeys: bisonRaw ? Object.keys(bisonRaw as object) : null,
-        error: (bisonRaw as Record<string, unknown>)?._error || null,
+        rawKeys: bisonRawForDebug ? Object.keys(bisonRawForDebug as object) : null,
+        error: bisonFetchError ? String(bisonFetchError) : ((bisonRawForDebug as Record<string, unknown>)?._error || null),
+        totalFetched: allBisonCampaigns.length,
         firstCampaignKeys: emailArr?.[0] ? Object.keys(emailArr[0]) : null,
       },
     },
