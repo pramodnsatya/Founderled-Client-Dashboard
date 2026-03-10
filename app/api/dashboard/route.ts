@@ -98,10 +98,26 @@ export async function GET(req: NextRequest) {
 
   const [heyreachCampaignsRaw, heyreachStatsRaw] = await Promise.allSettled([
     fetchHeyReach(client.heyreachKey, '/campaign/GetAll', 'POST', { limit: 100, offset: 0 }),
-    fetchHeyReach(client.heyreachKey, '/statistics/GetOverallStats', 'POST', { accountIds: [], campaignIds: [] }),
+    // Try multiple known endpoint paths for overall stats
+    (async () => {
+      const paths = [
+        '/campaign/GetOverallStats',
+        '/statistics/GetOverallStats',
+        '/stats/GetOverallStats',
+        '/campaign/getOverallStats',
+      ];
+      for (const path of paths) {
+        const result = await fetchHeyReach(client.heyreachKey, path, 'POST', { accountIds: [], campaignIds: [] });
+        if (result && (result.overallStats || result.byDayStats)) {
+          console.log(`[HeyReach] Stats success on path: ${path}`);
+          return result;
+        }
+      }
+      console.log('[HeyReach] All stats endpoints failed, will use progressStats from campaigns');
+      return null;
+    })(),
   ]);
   const linkedinCampaigns = heyreachCampaignsRaw.status === 'fulfilled' ? heyreachCampaignsRaw.value : null;
-  // HeyReach GetOverallStats returns { overallStats: {...}, byDayStats: {...} } at root level
   const linkedinStatsRaw = heyreachStatsRaw.status === 'fulfilled' ? heyreachStatsRaw.value : null;
 
   // ── EMAIL BISON ────────────────────────────────────────────────────────────
@@ -198,11 +214,24 @@ export async function GET(req: NextRequest) {
     linkedinAgg.replyRate      = dayMsgSent > 0 ? parseFloat(((dayReplies / dayMsgSent) * 100).toFixed(1)) : 0;
     console.log(`[HeyReach] Using byDayStats fallback: sent=${daySent}, accepted=${dayAccepted}, replies=${dayReplies}`);
   } else {
-    console.log(`[HeyReach] No stats available. linkedinStatsRaw keys: ${linkedinStatsRaw ? Object.keys(linkedinStatsRaw).join(',') : 'null'}`);
+    console.log(`[HeyReach] No stats from API. Falling back to progressStats from campaigns.`);
   }
 
   if (linkedinCampaigns?.items && Array.isArray(linkedinCampaigns.items)) {
     linkedinAgg.totalCampaigns = linkedinCampaigns.totalCount || linkedinCampaigns.items.length;
+    // If we still have no stats, sum from campaign progressStats
+    let progressSent = 0, progressFinished = 0;
+    for (const c of linkedinCampaigns.items) {
+      const ps = c.progressStats || {};
+      progressSent     += (ps.totalUsers           || 0);
+      progressFinished += (ps.totalUsersFinished    || 0);
+    }
+    if (linkedinAgg.totalConnectionsSent === 0 && progressSent > 0) {
+      linkedinAgg.totalConnectionsSent     = progressSent;
+      linkedinAgg.totalConnectionsAccepted = progressFinished;
+      linkedinAgg.acceptanceRate = progressSent > 0 ? parseFloat(((progressFinished / progressSent) * 100).toFixed(1)) : 0;
+      console.log(`[HeyReach] Used progressStats: sent=${progressSent}, finished=${progressFinished}`);
+    }
     for (const c of linkedinCampaigns.items) {
       const ps = c.progressStats || {};
       if (c.status === 'IN_PROGRESS' || c.status === 'STARTING') linkedinAgg.activeCampaigns++;
