@@ -208,6 +208,17 @@ export async function GET(req: NextRequest) {
       aggregate: linkedinAgg,
       campaigns: processedLinkedinCampaigns,
       timeSeries: linkedinTimeSeries,
+      _debug: {
+        statsRawKeys: linkedinStatsRaw ? Object.keys(linkedinStatsRaw) : null,
+        hasOverallStats: !!linkedinStatsRaw?.overallStats,
+        overallStatsSample: linkedinStatsRaw?.overallStats ? {
+          connectionsSent: linkedinStatsRaw.overallStats.connectionsSent,
+          connectionsAccepted: linkedinStatsRaw.overallStats.connectionsAccepted,
+        } : null,
+        campaignsRawKeys: linkedinCampaigns ? Object.keys(linkedinCampaigns) : null,
+        campaignsFulfilled: heyreachCampaignsRaw.status,
+        statsFulfilled: heyreachStatsRaw.status,
+      },
     },
   });
 }

@@ -143,6 +143,7 @@ export default function DashboardPage() {
   const linkedinCampaigns = linkedin?.campaigns || [];
   const linkedinTimeSeries = linkedin?.timeSeries || [];
   const emailDebug = email?._debug || null;
+  const linkedinDebug = linkedin?._debug || null;
   const selectedClientName = clients.find(c => c.id === selectedClientId)?.name || clientInfo?.name || 'Client';
 
   const navItems = [
@@ -244,8 +245,6 @@ export default function DashboardPage() {
                   <StatCard label="Emails Sent" value={(emailAgg.totalSent || 0).toLocaleString()} accent={ACCENT} icon="✉" />
                   <StatCard label="Replies" value={(emailAgg.totalReplies || 0).toLocaleString()} sub={`${emailAgg.replyRate || 0}% rate`} accent={ACCENT} icon="↩" />
                   <StatCard label="Bounces" value={(emailAgg.totalBounces || 0).toLocaleString()} sub={`${emailAgg.bounceRate || 0}% rate`} accent="#dc2626" icon="⊗" />
-                  <StatCard label="Opens" value={(emailAgg.totalOpens || 0).toLocaleString()} sub={`${emailAgg.openRate || 0}% rate`} accent={ACCENT} icon="◉" />
-                  <StatCard label="Clicks" value={(emailAgg.totalClicks || 0).toLocaleString()} sub={`${emailAgg.clickRate || 0}% rate`} accent={ACCENT} icon="⊕" />
                   <StatCard label="Active Campaigns" value={emailAgg.activeCampaigns || 0} accent={ACCENT} icon="▶" />
                 </div>
 
@@ -296,8 +295,6 @@ export default function DashboardPage() {
                   <StatCard label="Total Sent" value={(emailAgg.totalSent || 0).toLocaleString()} accent={ACCENT} icon="✉" />
                   <StatCard label="Reply Rate" value={`${emailAgg.replyRate || 0}%`} sub={`${(emailAgg.totalReplies || 0).toLocaleString()} replies`} accent={ACCENT} icon="↩" />
                   <StatCard label="Bounce Rate" value={`${emailAgg.bounceRate || 0}%`} sub={`${(emailAgg.totalBounces || 0).toLocaleString()} bounces`} accent="#dc2626" icon="⊗" />
-                  <StatCard label="Open Rate" value={`${emailAgg.openRate || 0}%`} accent={ACCENT} icon="◉" />
-                  <StatCard label="Click Rate" value={`${emailAgg.clickRate || 0}%`} accent={ACCENT} icon="⊕" />
                 </div>
 
                 {emailDebug?.error && (
@@ -315,7 +312,7 @@ export default function DashboardPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                            {['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %', 'Opens', 'Open %'].map(h => (
+                            {['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %'].map(h => (
                               <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#64748b', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -333,8 +330,6 @@ export default function DashboardPage() {
                               <td style={{ padding: '10px 12px', color: ACCENT, fontWeight: 600 }}>{c.replyRate}%</td>
                               <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.bounces || 0).toLocaleString()}</td>
                               <td style={{ padding: '10px 12px', color: parseFloat(c.bounceRate) > 5 ? '#dc2626' : '#0f1729' }}>{c.bounceRate}%</td>
-                              <td style={{ padding: '10px 12px', color: '#0f1729' }}>{(c.opens || 0).toLocaleString()}</td>
-                              <td style={{ padding: '10px 12px', color: '#0f1729' }}>{c.openRate}%</td>
                             </tr>
                           ))}
                         </tbody>
@@ -364,6 +359,14 @@ export default function DashboardPage() {
                   <StatCard label="Total Campaigns" value={linkedinAgg.totalCampaigns || 0} accent={LINKEDIN} icon="◎" />
                   <StatCard label="Active Campaigns" value={linkedinAgg.activeCampaigns || 0} accent={linkedinAgg.activeCampaigns > 0 ? '#16a34a' : LINKEDIN} icon="▶" />
                 </div>
+
+                {linkedinDebug && linkedinAgg.totalConnectionsSent === 0 && (
+                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#713f12' }}>
+                    ⚠️ <strong>HeyReach debug:</strong> stats={linkedinDebug.statsFulfilled}, campaigns={linkedinDebug.campaignsFulfilled}, 
+                    hasOverallStats={String(linkedinDebug.hasOverallStats)}, rawKeys=[{(linkedinDebug.statsRawKeys || []).join(', ')}]
+                    {linkedinDebug.overallStatsSample && <span>, sent={linkedinDebug.overallStatsSample.connectionsSent}</span>}
+                  </div>
+                )}
 
                 {linkedinTimeSeries.length > 0 && (
                   <div style={{ ...S.card, marginBottom: '20px' }}>
