@@ -31,15 +31,53 @@ export interface DB {
   clients: Client[];
 }
 
+// Pre-seeded admin and Adaptional client — auto-created on first boot
+// Password hash = "FounderLed2026!" (change via Admin panel after first login)
+const SEED_DATA: DB = {
+  users: [
+    {
+      id: "admin-seed-001",
+      email: "admin@founderled.io",
+      passwordHash: "$2b$12$ODDVnnDjO7NMXkYXo3JQL.yBWswMlmc35UOKfVKFspMv2uXPxbAA2",
+      role: "admin",
+      name: "Pramod",
+      createdAt: "2026-03-10T00:00:00Z",
+    }
+  ],
+  clients: [
+    {
+      id: "adaptional",
+      name: "Adaptional",
+      slug: "adaptional",
+      emailBisonKey: "81|wV2V42VWB2RryO8GXu0ySMhbpoxkLFSF3bqX3yE3dc7cbd40",
+      emailBisonDomain: "dedi.emailbison.com",
+      heyreachKey: "v3yzUdxWhBklrqQG8+JsFaV7OOYBETWGbLB8wJCQavc=",
+      createdAt: "2026-03-10T00:00:00Z",
+    }
+  ]
+};
+
 function ensureDB(): DB {
   const dir = path.dirname(DB_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   if (!fs.existsSync(DB_PATH)) {
-    const initial: DB = { users: [], clients: [] };
-    fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
-    return initial;
+    // First boot — write seed data so admin can log in immediately
+    fs.writeFileSync(DB_PATH, JSON.stringify(SEED_DATA, null, 2));
+    return SEED_DATA;
   }
-  return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+  const db: DB = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+  // Ensure seed admin always exists (in case file was wiped)
+  if (!db.users || db.users.length === 0) {
+    db.users = SEED_DATA.users;
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  }
+  // Ensure Adaptional client always exists
+  if (!db.clients) db.clients = [];
+  if (!db.clients.find((c: Client) => c.id === 'adaptional')) {
+    db.clients.push(SEED_DATA.clients[0]);
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  }
+  return db;
 }
 
 export function getDB(): DB {

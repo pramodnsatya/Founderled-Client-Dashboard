@@ -13,13 +13,13 @@ interface DashboardUser { id: string; email: string; role: string; clientId?: st
 const ACCENT = '#e8ff47';
 const LINKEDIN = '#47c4ff';
 const S = {
-  page: { minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif" } as React.CSSProperties,
+  page: { minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" } as React.CSSProperties,
   sidebar: { width: '220px', minHeight: '100vh', background: '#111118', borderRight: '1px solid #1e1e28', position: 'fixed' as const, left: 0, top: 0, bottom: 0, overflowY: 'auto' as const, zIndex: 10 },
   main: { marginLeft: '220px', padding: '28px 32px', minHeight: '100vh' },
   card: { background: '#111118', border: '1px solid #1e1e28', borderRadius: '12px', padding: '20px' },
   statCard: (color: string) => ({ background: '#111118', border: `1px solid #1e1e28`, borderRadius: '12px', padding: '20px', borderTop: `2px solid ${color}` }),
   badge: (color: string) => ({ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '20px', background: `${color}18`, color, fontSize: '11px', fontWeight: 600 }),
-  btn: { padding: '8px 16px', background: ACCENT, color: '#0a0a0f', border: 'none', borderRadius: '7px', cursor: 'pointer', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '12px' },
+  btn: { padding: '8px 16px', background: ACCENT, color: '#0a0a0f', border: 'none', borderRadius: '7px', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 700, fontSize: '12px' },
   btnGhost: { padding: '8px 16px', background: 'transparent', color: '#9090a8', border: '1px solid #1e1e28', borderRadius: '7px', cursor: 'pointer', fontSize: '12px' },
   input: { width: '100%', padding: '10px 12px', background: '#18181f', border: '1px solid #1e1e28', borderRadius: '7px', color: '#f0f0f5', fontSize: '13px', outline: 'none' },
   label: { display: 'block', color: '#9090a8', fontSize: '11px', fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: '0.8px', marginBottom: '6px' },
@@ -43,7 +43,7 @@ function StatCard({ label, value, sub, color, icon }: { label: string; value: st
         <span style={{ fontSize: '20px' }}>{icon}</span>
         {sub && <span style={{ color: '#6b6b80', fontSize: '11px' }}>{sub}</span>}
       </div>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '28px', fontWeight: 700, color: '#f0f0f5', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontSize: '28px', fontWeight: 700, color: '#f0f0f5', lineHeight: 1 }}>{value}</div>
       <div style={{ color: '#6b6b80', fontSize: '12px', marginTop: '6px' }}>{label}</div>
     </div>
   );
@@ -181,7 +181,7 @@ export default function DashboardPage() {
             <div style={{ width: '28px', height: '28px', background: ACCENT, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 11L7 2L12 11H2Z" fill="#0a0a0f" /></svg>
             </div>
-            <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '16px', color: '#f0f0f5' }}>
+            <span style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 800, fontSize: '16px', color: '#f0f0f5' }}>
               Founder<span style={{ color: ACCENT }}>.Led</span>
             </span>
           </div>
@@ -212,7 +212,7 @@ export default function DashboardPage() {
                 padding: '9px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                 background: activeTab === item.id ? 'rgba(232,255,71,0.1)' : 'transparent',
                 color: activeTab === item.id ? ACCENT : '#9090a8',
-                fontSize: '13px', textAlign: 'left', fontFamily: "'DM Sans', sans-serif",
+                fontSize: '13px', textAlign: 'left', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
                 transition: 'all 0.15s', marginBottom: '2px',
               }}
             >
@@ -242,7 +242,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
           <div>
-            <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '24px', fontWeight: 800, color: '#f0f0f5', lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontSize: '24px', fontWeight: 800, color: '#f0f0f5', lineHeight: 1.2 }}>
               {activeTab === 'admin' ? 'Admin Panel' : selectedClientName}
             </h1>
             <p style={{ color: '#6b6b80', fontSize: '13px', marginTop: '4px' }}>
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                 {/* Section: Email */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                   <div style={{ width: '3px', height: '20px', background: ACCENT, borderRadius: '2px' }} />
-                  <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '15px', color: '#f0f0f5' }}>Email Performance</span>
+                  <span style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 700, fontSize: '15px', color: '#f0f0f5' }}>Email Performance</span>
                   <span style={{ ...S.badge(ACCENT), fontSize: '10px' }}>{emailAgg.totalCampaigns || 0} campaigns</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px', marginBottom: '28px' }}>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 {/* Section: LinkedIn */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                   <div style={{ width: '3px', height: '20px', background: LINKEDIN, borderRadius: '2px' }} />
-                  <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '15px', color: '#f0f0f5' }}>LinkedIn Performance</span>
+                  <span style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 700, fontSize: '15px', color: '#f0f0f5' }}>LinkedIn Performance</span>
                   <span style={{ ...S.badge(LINKEDIN), fontSize: '10px' }}>{linkedinAgg.totalCampaigns || 0} campaigns</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px', marginBottom: '28px' }}>
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                 {/* LinkedIn chart */}
                 {linkedinTimeSeries.length > 0 && (
                   <div style={{ ...S.card, marginBottom: '28px' }}>
-                    <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '20px', color: '#f0f0f5' }}>
+                    <h3 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '20px', color: '#f0f0f5' }}>
                       LinkedIn Activity (Last 30 Active Days)
                     </h3>
                     <ResponsiveContainer width="100%" height={220}>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
 
                 {emailCampaigns.length > 0 ? (
                   <div style={S.card}>
-                    <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>
+                    <h3 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>
                       Email Campaigns ({emailCampaigns.length})
                     </h3>
                     <div style={{ overflowX: 'auto' }}>
@@ -392,7 +392,7 @@ export default function DashboardPage() {
 
                 {linkedinTimeSeries.length > 0 && (
                   <div style={{ ...S.card, marginBottom: '24px' }}>
-                    <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '20px', color: '#f0f0f5' }}>
+                    <h3 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '20px', color: '#f0f0f5' }}>
                       Daily Activity Trend
                     </h3>
                     <ResponsiveContainer width="100%" height={250}>
@@ -411,7 +411,7 @@ export default function DashboardPage() {
 
                 {linkedinCampaigns.length > 0 && (
                   <div style={S.card}>
-                    <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>
+                    <h3 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 600, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>
                       LinkedIn Campaigns ({linkedinCampaigns.length})
                     </h3>
                     <div style={{ overflowX: 'auto' }}>
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                       borderColor: adminTab === t ? ACCENT : '#1e1e28',
                       background: adminTab === t ? 'rgba(232,255,71,0.1)' : 'transparent',
                       color: adminTab === t ? ACCENT : '#9090a8',
-                      fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+                      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 600, fontSize: '13px', cursor: 'pointer',
                       textTransform: 'capitalize',
                     }}>{t}</button>
                   ))}
@@ -473,7 +473,7 @@ export default function DashboardPage() {
                     </div>
                     {showAddUser && (
                       <div style={{ ...S.card, marginBottom: '20px', borderColor: ACCENT + '40' }}>
-                        <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>New User</h3>
+                        <h3 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 700, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>New User</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                           <div><label style={S.label}>Name</label><input style={S.input} value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} placeholder="Full name" /></div>
                           <div><label style={S.label}>Email</label><input style={S.input} type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} placeholder="email@example.com" /></div>
@@ -541,7 +541,7 @@ export default function DashboardPage() {
                     </div>
                     {showAddClient && (
                       <div style={{ ...S.card, marginBottom: '20px', borderColor: ACCENT + '40' }}>
-                        <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>New Client</h3>
+                        <h3 style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 700, fontSize: '14px', marginBottom: '18px', color: '#f0f0f5' }}>New Client</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                           <div><label style={S.label}>Client Name</label><input style={S.input} value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="e.g. Epsilon" /></div>
                           <div><label style={S.label}>Email Bison Domain</label><input style={S.input} value={newClient.emailBisonDomain} onChange={e => setNewClient({ ...newClient, emailBisonDomain: e.target.value })} placeholder="dedi.emailbison.com" /></div>

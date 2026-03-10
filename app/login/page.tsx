@@ -35,7 +35,7 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -67,7 +67,7 @@ export default function LoginPage() {
                 <path d="M3 14L9 3L15 14H3Z" fill="#0a0a0f" />
               </svg>
             </div>
-            <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '20px', color: '#f0f0f5', letterSpacing: '-0.5px' }}>
+            <span style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 800, fontSize: '20px', color: '#f0f0f5', letterSpacing: '-0.5px' }}>
               Founder<span style={{ color: '#e8ff47' }}>.Led</span>
             </span>
           </div>
@@ -82,7 +82,7 @@ export default function LoginPage() {
           padding: '36px',
         }}>
           <h1 style={{
-            fontFamily: "'Syne', sans-serif", fontWeight: 700,
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 700,
             fontSize: '22px', color: '#f0f0f5', marginBottom: '6px',
           }}>Sign in</h1>
           <p style={{ color: '#6b6b80', fontSize: '13px', marginBottom: '28px' }}>
@@ -146,7 +146,7 @@ export default function LoginPage() {
               style={{
                 width: '100%', padding: '13px',
                 background: loading ? '#6b6b30' : '#e8ff47',
-                color: '#0a0a0f', fontFamily: "'Syne', sans-serif",
+                color: '#0a0a0f', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
                 fontWeight: 700, fontSize: '14px', letterSpacing: '0.3px',
                 border: 'none', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
