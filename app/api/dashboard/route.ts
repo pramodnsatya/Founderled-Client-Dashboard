@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
 
   const [heyreachCampaignsRaw, heyreachStatsRaw] = await Promise.allSettled([
     fetchHeyReach(client.heyreachKey, '/campaign/GetAll', 'POST', { limit: 100, offset: 0 }),
-    fetchHeyReach(client.heyreachKey, '/campaign/GetOverallStats', 'POST', { accountIds: [], campaignIds: [] }),
+    fetchHeyReach(client.heyreachKey, '/statistics/GetOverallStats', 'POST', { accountIds: [], campaignIds: [] }),
   ]);
   const linkedinCampaigns = heyreachCampaignsRaw.status === 'fulfilled' ? heyreachCampaignsRaw.value : null;
   // HeyReach GetOverallStats returns { overallStats: {...}, byDayStats: {...} } at root level
