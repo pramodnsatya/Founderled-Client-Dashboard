@@ -34,7 +34,7 @@ async function fetchHeyReach(apiKey: string, endpoint: string, method = 'GET', b
     const text = await res.text();
     console.log(`[HeyReach] ${endpoint} → ${res.status}, body length: ${text.length}, preview: ${text.slice(0, 100)}`);
     if (!res.ok) { console.error(`[HeyReach] ${endpoint} → ${res.status}: ${text.slice(0, 300)}`); return null; }
-    if (!text || text.trim() === '') return {};
+    if (!text || text.trim() === '' || text.trim() === 'null') { console.error('[HeyReach] empty body on ' + endpoint); return null; }
     try { return JSON.parse(text); }
     catch { console.error(`[HeyReach] parse error for ${endpoint}:`, text.slice(0, 200)); return null; }
   } catch (e) {
@@ -163,32 +163,42 @@ export async function GET(req: NextRequest) {
   };
   const processedLinkedinCampaigns: object[] = [];
 
-  // Parse overall stats — they live at root level under "overallStats" key
+  // Parse stats: prefer overallStats, but always also sum byDayStats as backup
   const os = linkedinStatsRaw?.overallStats;
-  if (os) {
+  const byDayRaw = linkedinStatsRaw?.byDayStats;
+
+  // Always sum byDayStats first (most reliable on Railway)
+  let daySent = 0, dayAccepted = 0, dayMsgSent = 0, dayReplies = 0;
+  if (byDayRaw && typeof byDayRaw === 'object') {
+    for (const s of Object.values(byDayRaw) as Record<string, number>[]) {
+      daySent     += s.connectionsSent     || 0;
+      dayAccepted += s.connectionsAccepted || 0;
+      dayMsgSent  += s.messagesSent        || 0;
+      dayReplies  += s.totalMessageReplies || 0;
+    }
+    console.log(`[HeyReach] byDayStats sum: sent=${daySent}, accepted=${dayAccepted}, replies=${dayReplies}`);
+  }
+
+  if (os && (os.connectionsSent > 0 || os.connectionsAccepted > 0)) {
+    // Use overallStats when it has real data
     linkedinAgg.totalConnectionsSent     = os.connectionsSent     || 0;
     linkedinAgg.totalConnectionsAccepted = os.connectionsAccepted || 0;
     linkedinAgg.totalMessagesSent        = os.messagesSent        || 0;
     linkedinAgg.totalReplies             = os.totalMessageReplies || 0;
-    // These are already 0-1 ratios — multiply by 100 for percentage display
     linkedinAgg.acceptanceRate = parseFloat(((os.connectionAcceptanceRate || 0) * 100).toFixed(1));
     linkedinAgg.replyRate      = parseFloat(((os.messageReplyRate         || 0) * 100).toFixed(1));
-  } else if (linkedinStatsRaw?.byDayStats) {
-    // FALLBACK: overallStats missing — compute totals by summing byDayStats
-    let sent = 0, accepted = 0, msgSent = 0, replies = 0;
-    for (const s of Object.values(linkedinStatsRaw.byDayStats) as Record<string, number>[]) {
-      sent     += s.connectionsSent     || 0;
-      accepted += s.connectionsAccepted || 0;
-      msgSent  += s.messagesSent        || 0;
-      replies  += s.totalMessageReplies || 0;
-    }
-    linkedinAgg.totalConnectionsSent     = sent;
-    linkedinAgg.totalConnectionsAccepted = accepted;
-    linkedinAgg.totalMessagesSent        = msgSent;
-    linkedinAgg.totalReplies             = replies;
-    linkedinAgg.acceptanceRate = sent > 0 ? parseFloat(((accepted / sent) * 100).toFixed(1)) : 0;
-    linkedinAgg.replyRate      = msgSent > 0 ? parseFloat(((replies / msgSent) * 100).toFixed(1)) : 0;
-    console.log(`[HeyReach] Used byDayStats fallback: sent=${sent}, accepted=${accepted}, replies=${replies}`);
+    console.log(`[HeyReach] Using overallStats: sent=${os.connectionsSent}, accepted=${os.connectionsAccepted}`);
+  } else if (daySent > 0 || dayAccepted > 0) {
+    // Fall back to byDayStats sum
+    linkedinAgg.totalConnectionsSent     = daySent;
+    linkedinAgg.totalConnectionsAccepted = dayAccepted;
+    linkedinAgg.totalMessagesSent        = dayMsgSent;
+    linkedinAgg.totalReplies             = dayReplies;
+    linkedinAgg.acceptanceRate = daySent > 0 ? parseFloat(((dayAccepted / daySent) * 100).toFixed(1)) : 0;
+    linkedinAgg.replyRate      = dayMsgSent > 0 ? parseFloat(((dayReplies / dayMsgSent) * 100).toFixed(1)) : 0;
+    console.log(`[HeyReach] Using byDayStats fallback: sent=${daySent}, accepted=${dayAccepted}, replies=${dayReplies}`);
+  } else {
+    console.log(`[HeyReach] No stats available. linkedinStatsRaw keys: ${linkedinStatsRaw ? Object.keys(linkedinStatsRaw).join(',') : 'null'}`);
   }
 
   if (linkedinCampaigns?.items && Array.isArray(linkedinCampaigns.items)) {
@@ -210,9 +220,8 @@ export async function GET(req: NextRequest) {
   }
 
   // byDayStats: sum last 30 active days
-  const byDay = linkedinStatsRaw?.byDayStats;
-  const linkedinTimeSeries = byDay
-    ? Object.entries(byDay)
+  const linkedinTimeSeries = byDayRaw
+    ? Object.entries(byDayRaw)
         .map(([date, s]) => {
           const stats = s as Record<string, number>;
           return {
@@ -245,13 +254,10 @@ export async function GET(req: NextRequest) {
       timeSeries: linkedinTimeSeries,
       _debug: {
         statsRawKeys: linkedinStatsRaw ? Object.keys(linkedinStatsRaw) : null,
-        hasOverallStats: !!linkedinStatsRaw?.overallStats,
-        hasByDayStats: !!linkedinStatsRaw?.byDayStats,
-        usedFallback: !linkedinStatsRaw?.overallStats && !!linkedinStatsRaw?.byDayStats,
-        overallStatsSample: linkedinStatsRaw?.overallStats ? {
-          connectionsSent: linkedinStatsRaw.overallStats.connectionsSent,
-          connectionsAccepted: linkedinStatsRaw.overallStats.connectionsAccepted,
-        } : null,
+        hasOverallStats: !!(linkedinStatsRaw?.overallStats?.connectionsSent > 0),
+        hasByDayStats: !!(byDayRaw && Object.keys(byDayRaw).length > 0),
+        daySumSent: daySent,
+        daySumAccepted: dayAccepted,
         campaignsFulfilled: heyreachCampaignsRaw.status,
         statsFulfilled: heyreachStatsRaw.status,
       },

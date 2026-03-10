@@ -17,10 +17,10 @@ const S = {
   card: { background: '#ffffff', border: '1px solid #e2e5ef', borderRadius: '10px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   statCard: (accent: string) => ({ background: '#ffffff', border: '1px solid #e2e5ef', borderRadius: '10px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', borderLeft: `3px solid ${accent}` }),
   badge: (color: string, bg: string) => ({ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '20px', background: bg, color, fontSize: '11px', fontWeight: 600 }),
-  btn: { padding: '8px 16px', background: ACCENT, color: '#fff', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' },
-  btnOutline: { padding: '8px 16px', background: 'transparent', color: '#64748b', border: '1px solid #e2e5ef', borderRadius: '7px', cursor: 'pointer', fontSize: '13px' },
-  input: { width: '100%', padding: '9px 12px', background: '#f8fafc', border: '1px solid #e2e5ef', borderRadius: '7px', color: '#0f1729', fontSize: '13px', outline: 'none' },
-  label: { display: 'block', color: '#64748b', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.6px', marginBottom: '5px' },
+  btn: { padding: '8px 16px', background: ACCENT, color: '#fff', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' },
+  btnOutline: { padding: '8px 16px', background: 'transparent', color: '#64748b', border: '1px solid #e2e5ef', borderRadius: '7px', cursor: 'pointer', fontSize: '14px' },
+  input: { width: '100%', padding: '9px 12px', background: '#f8fafc', border: '1px solid #e2e5ef', borderRadius: '7px', color: '#0f1729', fontSize: '14px', outline: 'none' },
+  label: { display: 'block', color: '#64748b', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.6px', marginBottom: '5px' },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -39,11 +39,11 @@ function StatCard({ label, value, sub, accent, icon }: { label: string; value: s
   return (
     <div style={S.statCard(accent)} className="animate-fade-in animate-stagger-1">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-        <span style={{ fontSize: '18px' }}>{icon}</span>
-        {sub && <span style={{ color: '#64748b', fontSize: '11px', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{sub}</span>}
+        <span style={{ fontSize: '20px' }}>{icon}</span>
+        {sub && <span style={{ color: '#64748b', fontSize: '12px', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{sub}</span>}
       </div>
-      <div style={{ fontSize: '26px', fontWeight: 700, color: '#0f1729', lineHeight: 1, marginBottom: '4px' }}>{value}</div>
-      <div style={{ color: '#64748b', fontSize: '12px' }}>{label}</div>
+      <div style={{ fontSize: '30px', fontWeight: 700, color: '#0f1729', lineHeight: 1, marginBottom: '4px' }}>{value}</div>
+      <div style={{ color: '#64748b', fontSize: '14px' }}>{label}</div>
     </div>
   );
 }
@@ -52,7 +52,7 @@ function StatCard({ label, value, sub, accent, icon }: { label: string; value: s
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e5ef', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+    <div style={{ background: '#fff', border: '1px solid #e2e5ef', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
       <div style={{ color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>{label}</div>
       {payload.map((p: { name: string; value: number; color: string }, i: number) => (
         <div key={i} style={{ color: p.color, marginBottom: '2px' }}>{p.name}: <strong>{p.value}</strong></div>
@@ -184,10 +184,10 @@ export default function DashboardPage() {
               padding: '8px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer',
               background: activeTab === item.id ? '#eff4ff' : 'transparent',
               color: activeTab === item.id ? ACCENT : '#64748b',
-              fontSize: '13px', textAlign: 'left', fontWeight: activeTab === item.id ? 600 : 400,
+              fontSize: '14px', textAlign: 'left', fontWeight: activeTab === item.id ? 600 : 400,
               transition: 'all 0.15s', marginBottom: '1px',
             }}>
-              <span style={{ fontSize: '13px', width: '16px', textAlign: 'center' }}>{item.icon}</span>
+              <span style={{ fontSize: '14px', width: '16px', textAlign: 'center' }}>{item.icon}</span>
               {item.label}
             </button>
           ))}
@@ -199,8 +199,8 @@ export default function DashboardPage() {
               {user?.name?.[0]?.toUpperCase() || '?'}
             </div>
             <div>
-              <div style={{ color: '#0f1729', fontSize: '12px', fontWeight: 600 }}>{user?.name}</div>
-              <div style={{ color: '#94a3b8', fontSize: '11px', textTransform: 'capitalize' }}>{user?.role}</div>
+              <div style={{ color: '#0f1729', fontSize: '13px', fontWeight: 600 }}>{user?.name}</div>
+              <div style={{ color: '#94a3b8', fontSize: '12px', textTransform: 'capitalize' }}>{user?.role}</div>
             </div>
           </div>
           <button onClick={logout} style={{ ...S.btnOutline, width: '100%', textAlign: 'center' as const }}>Sign out</button>
@@ -211,10 +211,10 @@ export default function DashboardPage() {
       <main style={S.main}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f1729', lineHeight: 1.2, marginBottom: '3px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f1729', lineHeight: 1.2, marginBottom: '3px' }}>
               {activeTab === 'admin' ? 'Admin Panel' : selectedClientName}
             </h1>
-            <p style={{ color: '#64748b', fontSize: '13px' }}>
+            <p style={{ color: '#64748b', fontSize: '14px' }}>
               {activeTab === 'overview' && 'All-channel performance overview'}
               {activeTab === 'email' && 'Email Bison campaign metrics'}
               {activeTab === 'linkedin' && 'HeyReach LinkedIn campaign metrics'}
@@ -237,7 +237,7 @@ export default function DashboardPage() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                   <div style={{ width: '3px', height: '18px', background: ACCENT, borderRadius: '2px' }} />
-                  <span style={{ fontWeight: 700, fontSize: '14px', color: '#0f1729' }}>Email Performance</span>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#0f1729' }}>Email Performance</span>
                   <span style={S.badge(ACCENT, '#eff4ff')}>{emailAgg.totalCampaigns || 0} campaigns</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px', marginBottom: '28px' }}>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                 </div>
 
                 {emailDebug?.error && (
-                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', fontSize: '12px', color: '#713f12' }}>
+                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#713f12' }}>
                     <strong>Email Bison API note:</strong> Received error <code>{emailDebug.error}</code>. 
                     Check that your API key and domain are correct in Admin → Clients.
                     {emailDebug.rawKeys && <span> Response keys: {emailDebug.rawKeys.join(', ')}</span>}
@@ -257,7 +257,7 @@ export default function DashboardPage() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                   <div style={{ width: '3px', height: '18px', background: LINKEDIN, borderRadius: '2px' }} />
-                  <span style={{ fontWeight: 700, fontSize: '14px', color: '#0f1729' }}>LinkedIn Performance</span>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#0f1729' }}>LinkedIn Performance</span>
                   <span style={S.badge(LINKEDIN, '#dbeafe')}>{linkedinAgg.totalCampaigns || 0} campaigns</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px', marginBottom: '28px' }}>
@@ -270,14 +270,14 @@ export default function DashboardPage() {
 
                 {linkedinTimeSeries.length > 0 && (
                   <div style={S.card}>
-                    <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '18px', color: '#0f1729' }}>LinkedIn Activity (Last 30 Days)</h3>
+                    <h3 style={{ fontWeight: 600, fontSize: '15px', marginBottom: '18px', color: '#0f1729' }}>LinkedIn Activity (Last 30 Days)</h3>
                     <ResponsiveContainer width="100%" height={220}>
                       <LineChart data={linkedinTimeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                        <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                        <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Legend wrapperStyle={{ fontSize: '13px' }} />
                         <Line type="monotone" dataKey="connectionsSent" name="Sent" stroke={LINKEDIN} strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="connectionsAccepted" name="Accepted" stroke="#16a34a" strokeWidth={2} dot={false} />
                       </LineChart>
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                 </div>
 
                 {emailDebug?.error && (
-                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#713f12' }}>
+                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#713f12' }}>
                     ⚠️ <strong>Email Bison API issue:</strong> Error code <code>{emailDebug.error}</code>. 
                     The API key may be incorrect or the domain may be wrong. Check Admin → Clients.
                     {emailDebug.rawKeys && <div style={{ marginTop: '4px' }}>Response had keys: <code>{emailDebug.rawKeys.join(', ')}</code></div>}
@@ -313,18 +313,18 @@ export default function DashboardPage() {
                       return (
                         <>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <h3 style={{ fontWeight: 600, fontSize: '14px', color: '#0f1729', margin: 0 }}>
+                            <h3 style={{ fontWeight: 600, fontSize: '15px', color: '#0f1729', margin: 0 }}>
                               Email Campaigns ({emailCampaigns.length})
                             </h3>
                             {totalPages > 1 && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#64748b' }}>
                                 <button
                                   onClick={() => setEmailPage(p => Math.max(1, p - 1))}
                                   disabled={emailPage === 1}
                                   style={{ background: 'none', border: '1px solid #e2e5ef', borderRadius: '6px', width: '28px', height: '28px', cursor: emailPage === 1 ? 'default' : 'pointer', color: emailPage === 1 ? '#cbd5e1' : '#0f1729', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   ‹
                                 </button>
-                                <span style={{ fontSize: '12px' }}>Page {emailPage} of {totalPages}</span>
+                                <span style={{ fontSize: '13px' }}>Page {emailPage} of {totalPages}</span>
                                 <button
                                   onClick={() => setEmailPage(p => Math.min(totalPages, p + 1))}
                                   disabled={emailPage === totalPages}
@@ -369,7 +369,7 @@ export default function DashboardPage() {
                   <div style={{ ...S.card, textAlign: 'center', padding: '48px', color: '#64748b' }}>
                     <div style={{ fontSize: '28px', marginBottom: '10px' }}>✉</div>
                     <div style={{ fontWeight: 500 }}>No email campaigns found</div>
-                    <div style={{ fontSize: '12px', marginTop: '6px', color: '#94a3b8' }}>
+                    <div style={{ fontSize: '13px', marginTop: '6px', color: '#94a3b8' }}>
                       {emailDebug?.error ? 'API returned an error — check your Email Bison API key in Admin → Clients' : 'Email Bison campaigns will appear here once data is available'}
                     </div>
                   </div>
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                 </div>
 
                 {linkedinDebug && linkedinAgg.totalConnectionsSent === 0 && (
-                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#713f12' }}>
+                  <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#713f12' }}>
                     ⚠️ <strong>HeyReach debug:</strong> stats={linkedinDebug.statsFulfilled}, campaigns={linkedinDebug.campaignsFulfilled}, 
                     hasOverallStats={String(linkedinDebug.hasOverallStats)}, rawKeys=[{(linkedinDebug.statsRawKeys || []).join(', ')}]
                     {linkedinDebug.overallStatsSample && <span>, sent={linkedinDebug.overallStatsSample.connectionsSent}</span>}
@@ -399,14 +399,14 @@ export default function DashboardPage() {
 
                 {linkedinTimeSeries.length > 0 && (
                   <div style={{ ...S.card, marginBottom: '20px' }}>
-                    <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '18px', color: '#0f1729' }}>Daily Activity</h3>
+                    <h3 style={{ fontWeight: 600, fontSize: '15px', marginBottom: '18px', color: '#0f1729' }}>Daily Activity</h3>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={linkedinTimeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                        <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                        <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Legend wrapperStyle={{ fontSize: '13px' }} />
                         <Bar dataKey="connectionsSent" name="Sent" fill={LINKEDIN} opacity={0.85} radius={[3, 3, 0, 0]} />
                         <Bar dataKey="connectionsAccepted" name="Accepted" fill="#16a34a" opacity={0.85} radius={[3, 3, 0, 0]} />
                       </BarChart>
@@ -416,7 +416,7 @@ export default function DashboardPage() {
 
                 {linkedinCampaigns.length > 0 && (
                   <div style={S.card}>
-                    <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '16px', color: '#0f1729' }}>LinkedIn Campaigns ({linkedinCampaigns.length})</h3>
+                    <h3 style={{ fontWeight: 600, fontSize: '15px', marginBottom: '16px', color: '#0f1729' }}>LinkedIn Campaigns ({linkedinCampaigns.length})</h3>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
@@ -460,7 +460,7 @@ export default function DashboardPage() {
                       borderColor: adminTab === t ? ACCENT : '#e2e5ef',
                       background: adminTab === t ? '#eff4ff' : '#fff',
                       color: adminTab === t ? ACCENT : '#64748b',
-                      fontWeight: 600, fontSize: '13px', cursor: 'pointer', textTransform: 'capitalize',
+                      fontWeight: 600, fontSize: '14px', cursor: 'pointer', textTransform: 'capitalize',
                     }}>{t}</button>
                   ))}
                 </div>
@@ -468,12 +468,12 @@ export default function DashboardPage() {
                 {adminTab === 'users' && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ color: '#64748b', fontSize: '13px' }}>{adminUsers.length} users</span>
+                      <span style={{ color: '#64748b', fontSize: '14px' }}>{adminUsers.length} users</span>
                       <button style={S.btn} onClick={() => setShowAddUser(!showAddUser)}>+ Add User</button>
                     </div>
                     {showAddUser && (
                       <div style={{ ...S.card, marginBottom: '16px', borderColor: ACCENT + '40', borderLeftWidth: '3px', borderLeftColor: ACCENT }}>
-                        <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '16px', color: '#0f1729' }}>New User</h3>
+                        <h3 style={{ fontWeight: 600, fontSize: '15px', marginBottom: '16px', color: '#0f1729' }}>New User</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                           <div><label style={S.label}>Name</label><input style={S.input} value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} placeholder="Full name" /></div>
                           <div><label style={S.label}>Email</label><input style={S.input} type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} placeholder="email@example.com" /></div>
@@ -530,12 +530,12 @@ export default function DashboardPage() {
                 {adminTab === 'clients' && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ color: '#64748b', fontSize: '13px' }}>{adminClients.length} clients</span>
+                      <span style={{ color: '#64748b', fontSize: '14px' }}>{adminClients.length} clients</span>
                       <button style={S.btn} onClick={() => setShowAddClient(!showAddClient)}>+ Add Client</button>
                     </div>
                     {showAddClient && (
                       <div style={{ ...S.card, marginBottom: '16px', borderLeftWidth: '3px', borderLeftColor: ACCENT }}>
-                        <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '16px', color: '#0f1729' }}>New Client</h3>
+                        <h3 style={{ fontWeight: 600, fontSize: '15px', marginBottom: '16px', color: '#0f1729' }}>New Client</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                           <div><label style={S.label}>Client Name</label><input style={S.input} value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="e.g. Epsilon" /></div>
                           <div><label style={S.label}>Email Bison Domain</label><input style={S.input} value={newClient.emailBisonDomain} onChange={e => setNewClient({ ...newClient, emailBisonDomain: e.target.value })} placeholder="send.founderled.io" /></div>
