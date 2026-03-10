@@ -3,18 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0a0a0f;
-  --surface: #111118;
-  --surface2: #18181f;
-  --border: #1e1e28;
-  --accent: #e8ff47;
-  --accent2: #47c4ff;
-  --text: #f0f0f5;
-  --text-muted: #6b6b80;
-  --text-dim: #9090a8;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface2: #f0f2f8;
+  --border: #e2e5ef;
+  --border2: #d0d4e4;
+  --accent: #2563eb;
+  --accent-light: #eff4ff;
+  --accent2: #0ea5e9;
+  --text: #0f1729;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --linkedin: #0a66c2;
+  --linkedin-light: #eff6ff;
+  --email: #2563eb;
 }
 
 * { box-sizing: border-box; }
@@ -29,26 +34,19 @@ body {
   min-height: 100vh;
 }
 
-h1, h2, h3, h4 { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surface2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
 
-.animate-fade-in { animation: fadeIn 0.4s ease forwards; }
-.animate-stagger-1 { animation-delay: 0.05s; opacity: 0; }
-.animate-stagger-2 { animation-delay: 0.1s; opacity: 0; }
-.animate-stagger-3 { animation-delay: 0.15s; opacity: 0; }
-.animate-stagger-4 { animation-delay: 0.2s; opacity: 0; }
-.animate-stagger-5 { animation-delay: 0.25s; opacity: 0; }
-.animate-stagger-6 { animation-delay: 0.3s; opacity: 0; }
-.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+.animate-stagger-1 { animation-delay: 0.04s; opacity: 0; }
+.animate-stagger-2 { animation-delay: 0.08s; opacity: 0; }
+.animate-stagger-3 { animation-delay: 0.12s; opacity: 0; }
+.animate-stagger-4 { animation-delay: 0.16s; opacity: 0; }
+.animate-stagger-5 { animation-delay: 0.20s; opacity: 0; }
+.animate-stagger-6 { animation-delay: 0.24s; opacity: 0; }
