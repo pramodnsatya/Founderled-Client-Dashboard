@@ -27,12 +27,16 @@ async function fetchHeyReach(apiKey: string, endpoint: string, method = 'GET', b
   try {
     const res = await fetch(url, {
       method,
-      headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+      headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
       cache: 'no-store',
     });
-    if (!res.ok) { console.error(`[HeyReach] ${endpoint} → ${res.status}`); return null; }
-    return res.json();
+    const text = await res.text();
+    console.log(`[HeyReach] ${endpoint} → ${res.status}, body length: ${text.length}, preview: ${text.slice(0, 100)}`);
+    if (!res.ok) { console.error(`[HeyReach] ${endpoint} → ${res.status}: ${text.slice(0, 300)}`); return null; }
+    if (!text || text.trim() === '') return {};
+    try { return JSON.parse(text); }
+    catch { console.error(`[HeyReach] parse error for ${endpoint}:`, text.slice(0, 200)); return null; }
   } catch (e) {
     console.error(`[HeyReach] fetch error:`, e);
     return null;
@@ -169,6 +173,22 @@ export async function GET(req: NextRequest) {
     // These are already 0-1 ratios — multiply by 100 for percentage display
     linkedinAgg.acceptanceRate = parseFloat(((os.connectionAcceptanceRate || 0) * 100).toFixed(1));
     linkedinAgg.replyRate      = parseFloat(((os.messageReplyRate         || 0) * 100).toFixed(1));
+  } else if (linkedinStatsRaw?.byDayStats) {
+    // FALLBACK: overallStats missing — compute totals by summing byDayStats
+    let sent = 0, accepted = 0, msgSent = 0, replies = 0;
+    for (const s of Object.values(linkedinStatsRaw.byDayStats) as Record<string, number>[]) {
+      sent     += s.connectionsSent     || 0;
+      accepted += s.connectionsAccepted || 0;
+      msgSent  += s.messagesSent        || 0;
+      replies  += s.totalMessageReplies || 0;
+    }
+    linkedinAgg.totalConnectionsSent     = sent;
+    linkedinAgg.totalConnectionsAccepted = accepted;
+    linkedinAgg.totalMessagesSent        = msgSent;
+    linkedinAgg.totalReplies             = replies;
+    linkedinAgg.acceptanceRate = sent > 0 ? parseFloat(((accepted / sent) * 100).toFixed(1)) : 0;
+    linkedinAgg.replyRate      = msgSent > 0 ? parseFloat(((replies / msgSent) * 100).toFixed(1)) : 0;
+    console.log(`[HeyReach] Used byDayStats fallback: sent=${sent}, accepted=${accepted}, replies=${replies}`);
   }
 
   if (linkedinCampaigns?.items && Array.isArray(linkedinCampaigns.items)) {
@@ -226,11 +246,12 @@ export async function GET(req: NextRequest) {
       _debug: {
         statsRawKeys: linkedinStatsRaw ? Object.keys(linkedinStatsRaw) : null,
         hasOverallStats: !!linkedinStatsRaw?.overallStats,
+        hasByDayStats: !!linkedinStatsRaw?.byDayStats,
+        usedFallback: !linkedinStatsRaw?.overallStats && !!linkedinStatsRaw?.byDayStats,
         overallStatsSample: linkedinStatsRaw?.overallStats ? {
           connectionsSent: linkedinStatsRaw.overallStats.connectionsSent,
           connectionsAccepted: linkedinStatsRaw.overallStats.connectionsAccepted,
         } : null,
-        campaignsRawKeys: linkedinCampaigns ? Object.keys(linkedinCampaigns) : null,
         campaignsFulfilled: heyreachCampaignsRaw.status,
         statsFulfilled: heyreachStatsRaw.status,
       },
