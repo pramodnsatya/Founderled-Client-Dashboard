@@ -75,7 +75,7 @@ export default function DashboardPage() {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client', clientId: '' });
-  const [newClient, setNewClient] = useState({ name: '', emailBisonKey: '', emailBisonDomain: 'dedi.emailbison.com', heyreachKey: '' });
+  const [newClient, setNewClient] = useState({ name: '', emailBisonKey: '', emailBisonDomain: 'send.founderled.io', heyreachKey: '' });
   const router = useRouter();
 
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function DashboardPage() {
   };
   const createClient = async () => {
     const res = await fetch('/api/admin/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newClient) });
-    if (res.ok) { setShowAddClient(false); setNewClient({ name: '', emailBisonKey: '', emailBisonDomain: 'dedi.emailbison.com', heyreachKey: '' }); loadAdminData(); fetch('/api/admin/clients').then(r => r.json()).then(d => Array.isArray(d) && setClients(d)); }
+    if (res.ok) { setShowAddClient(false); setNewClient({ name: '', emailBisonKey: '', emailBisonDomain: 'send.founderled.io', heyreachKey: '' }); loadAdminData(); fetch('/api/admin/clients').then(r => r.json()).then(d => Array.isArray(d) && setClients(d)); }
   };
   const deleteUser = async (id: string) => { if (confirm('Delete this user?')) { await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE' }); loadAdminData(); } };
 
@@ -506,7 +506,7 @@ export default function DashboardPage() {
                         <h3 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '16px', color: '#0f1729' }}>New Client</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                           <div><label style={S.label}>Client Name</label><input style={S.input} value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="e.g. Epsilon" /></div>
-                          <div><label style={S.label}>Email Bison Domain</label><input style={S.input} value={newClient.emailBisonDomain} onChange={e => setNewClient({ ...newClient, emailBisonDomain: e.target.value })} placeholder="dedi.emailbison.com" /></div>
+                          <div><label style={S.label}>Email Bison Domain</label><input style={S.input} value={newClient.emailBisonDomain} onChange={e => setNewClient({ ...newClient, emailBisonDomain: e.target.value })} placeholder="send.founderled.io" /></div>
                           <div style={{ gridColumn: '1/-1' }}><label style={S.label}>Email Bison API Key</label><input style={S.input} value={newClient.emailBisonKey} onChange={e => setNewClient({ ...newClient, emailBisonKey: e.target.value })} placeholder="81|xxxx..." /></div>
                           <div style={{ gridColumn: '1/-1' }}><label style={S.label}>HeyReach API Key</label><input style={S.input} value={newClient.heyreachKey} onChange={e => setNewClient({ ...newClient, heyreachKey: e.target.value })} placeholder="v3xyz..." /></div>
                         </div>

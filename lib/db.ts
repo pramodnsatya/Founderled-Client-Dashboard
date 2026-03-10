@@ -11,7 +11,7 @@ export interface Client {
   name: string;
   slug: string;
   emailBisonKey: string;
-  emailBisonDomain: string; // e.g., "dedi.emailbison.com"
+  emailBisonDomain: string; // e.g., "send.founderled.io"
   heyreachKey: string;
   createdAt: string;
 }
@@ -50,7 +50,7 @@ const SEED_DATA: DB = {
       name: "Adaptional",
       slug: "adaptional",
       emailBisonKey: "81|wV2V42VWB2RryO8GXu0ySMhbpoxkLFSF3bqX3yE3dc7cbd40",
-      emailBisonDomain: "dedi.emailbison.com",
+      emailBisonDomain: "send.founderled.io",
       heyreachKey: "v3yzUdxWhBklrqQG8+JsFaV7OOYBETWGbLB8wJCQavc=",
       createdAt: "2026-03-10T00:00:00Z",
     }
