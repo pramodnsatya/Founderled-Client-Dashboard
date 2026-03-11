@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -10,129 +10,169 @@ interface User { id: string; email: string; role: 'admin' | 'client'; clientId?:
 interface Client { id: string; name: string; slug: string; emailBisonKey: string; heyreachKey: string; emailBisonDomain: string; createdAt: string; }
 interface DashboardUser { id: string; email: string; role: string; clientId?: string; name: string; }
 
-const C = {
-  bg:        '#080d18',
-  bgCard:    '#0f1623',
-  bgHover:   '#141d2e',
-  border:    '#1c2840',
-  borderHi:  '#263754',
-  text:      '#e2eaf8',
-  textMuted: '#5e7a9e',
-  textDim:   '#2e4560',
-  blue:      '#3b82f6',
-  blueDim:   '#0f2043',
-  blueGlow:  'rgba(59,130,246,0.12)',
-  green:     '#10b981',
-  greenDim:  '#0a2e21',
-  red:       '#ef4444',
-  amber:     '#f59e0b',
-  linkedin:  '#0a84ff',
-  linkedinBg:'#061830',
-};
+// ── Theme tokens ──────────────────────────────────────────────────────────────
+function makeTheme(dark: boolean) {
+  return dark ? {
+    bg:         '#080d18',
+    bgCard:     '#0f1623',
+    bgHover:    '#141d2e',
+    border:     '#1c2840',
+    borderHi:   '#263754',
+    text:       '#e2eaf8',
+    textMuted:  '#5e7a9e',
+    textDim:    '#2e4560',
+    blue:       '#3b82f6',
+    blueDim:    '#0f2043',
+    blueGlow:   'rgba(59,130,246,0.12)',
+    green:      '#10b981',
+    greenDim:   '#0a2e21',
+    red:        '#ef4444',
+    amber:      '#f59e0b',
+    linkedin:   '#0a84ff',
+    linkedinBg: '#061830',
+    shadow:     '0 8px 32px rgba(0,0,0,0.45)',
+    inputBg:    '#080d18',
+    warnBg:     '#1a1200',
+    warnBorder: '#3d2e00',
+    warnText:   '#f59e0b',
+  } : {
+    bg:         '#f0f4fb',
+    bgCard:     '#ffffff',
+    bgHover:    '#f5f8ff',
+    border:     '#dde4f0',
+    borderHi:   '#b8c9e8',
+    text:       '#0f1729',
+    textMuted:  '#5a6e8c',
+    textDim:    '#94a8c4',
+    blue:       '#2563eb',
+    blueDim:    '#dbeafe',
+    blueGlow:   'rgba(37,99,235,0.09)',
+    green:      '#059669',
+    greenDim:   '#d1fae5',
+    red:        '#dc2626',
+    amber:      '#d97706',
+    linkedin:   '#0a66c2',
+    linkedinBg: '#dbeafe',
+    shadow:     '0 4px 20px rgba(0,0,0,0.07)',
+    inputBg:    '#f5f8ff',
+    warnBg:     '#fefce8',
+    warnBorder: '#fde047',
+    warnText:   '#854d0e',
+  };
+}
 
-const G = `
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:${C.bg};color:${C.text};font-family:'Sora',sans-serif;-webkit-font-smoothing:antialiased}
-  ::-webkit-scrollbar{width:4px;height:4px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:${C.border};border-radius:2px}
-  select option{background:${C.bgCard};color:${C.text}}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:0.35}}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-  .fu{animation:fadeUp 0.35s ease both}
-  .d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}
-  .d4{animation-delay:.16s}.d5{animation-delay:.20s}.d6{animation-delay:.24s}
-  .nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border-radius:8px;border:none;cursor:pointer;font-size:13.5px;font-family:'Sora',sans-serif;font-weight:400;text-align:left;transition:all .15s;color:${C.textMuted};background:transparent}
-  .nav-btn:hover{color:${C.text};background:${C.bgHover}}
-  .nav-btn.on{color:${C.blue};background:${C.blueGlow};font-weight:600}
-  .stat{background:${C.bgCard};border:1px solid ${C.border};border-radius:12px;padding:20px;transition:all .2s;position:relative;overflow:hidden;cursor:default}
-  .stat::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;opacity:0;transition:opacity .2s}
-  .stat:hover{border-color:${C.borderHi};transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
-  .stat:hover::after{opacity:1}
-  .stat.blue::after{background:linear-gradient(90deg,${C.blue},transparent)}
-  .stat.green::after{background:linear-gradient(90deg,${C.green},transparent)}
-  .stat.linkedin::after{background:linear-gradient(90deg,${C.linkedin},transparent)}
-  .stat.red::after{background:linear-gradient(90deg,${C.red},transparent)}
-  .card{background:${C.bgCard};border:1px solid ${C.border};border-radius:14px;padding:24px}
-  .trow:hover{background:${C.bgHover}!important}
-  .pill{padding:5px 11px;border-radius:6px;border:1px solid ${C.border};background:transparent;color:${C.textMuted};font-size:11.5px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .15s;font-weight:500}
-  .pill:hover{border-color:${C.borderHi};color:${C.text}}
-  .pill.on{border-color:${C.blue};background:${C.blueGlow};color:${C.blue}}
-  .pill:disabled{opacity:.35;cursor:default}
-  .btn-primary{padding:9px 20px;background:${C.blue};color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:'Sora',sans-serif;transition:all .15s;letter-spacing:.01em}
-  .btn-primary:hover{background:#2563eb;box-shadow:0 0 24px rgba(59,130,246,.35)}
-  .btn-primary:disabled{opacity:.45;cursor:default;box-shadow:none}
-  .btn-ghost{padding:9px 20px;background:transparent;color:${C.textMuted};border:1px solid ${C.border};border-radius:8px;cursor:pointer;font-size:13.5px;font-family:'Sora',sans-serif;transition:all .15s}
-  .btn-ghost:hover{border-color:${C.borderHi};color:${C.text}}
-  .btn-danger{padding:5px 12px;background:transparent;color:${C.red};border:1px solid rgba(239,68,68,.25);border-radius:6px;cursor:pointer;font-size:12px;font-family:'Sora',sans-serif;transition:all .15s}
-  .btn-danger:hover{background:rgba(239,68,68,.08);border-color:${C.red}}
-  .inp{width:100%;padding:10px 13px;background:${C.bg};border:1px solid ${C.border};border-radius:8px;color:${C.text};font-size:13.5px;font-family:'Sora',sans-serif;outline:none;transition:border-color .15s}
-  .inp:focus{border-color:${C.blue};box-shadow:0 0 0 3px ${C.blueGlow}}
-  .inp::placeholder{color:${C.textDim}}
-  .lbl{color:${C.textDim};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-  .shimmer{background:linear-gradient(90deg,transparent,rgba(59,130,246,.2),transparent);background-size:200% 100%;animation:shimmer 1.4s infinite}
-`;
+function buildCss(t: ReturnType<typeof makeTheme>, dark: boolean) {
+  return `
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:${t.bg};color:${t.text};font-family:'Sora',sans-serif;-webkit-font-smoothing:antialiased}
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:${t.border};border-radius:2px}
+    select option{background:${t.bgCard};color:${t.text}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    .fu{animation:fadeUp .35s ease both}
+    .d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}
+    .d4{animation-delay:.16s}.d5{animation-delay:.20s}.d6{animation-delay:.24s}
+    .nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border-radius:8px;border:none;cursor:pointer;font-size:13.5px;font-family:'Sora',sans-serif;font-weight:400;text-align:left;transition:all .15s;color:${t.textMuted};background:transparent}
+    .nav-btn:hover{color:${t.text};background:${t.bgHover}}
+    .nav-btn.on{color:${t.blue};background:${t.blueGlow};font-weight:600}
+    .stat{background:${t.bgCard};border:1px solid ${t.border};border-radius:12px;padding:20px;transition:all .2s;position:relative;overflow:hidden;cursor:default;box-shadow:${dark ? 'none' : '0 1px 4px rgba(0,0,0,0.05)'}}
+    .stat::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;opacity:0;transition:opacity .2s}
+    .stat:hover{border-color:${t.borderHi};transform:translateY(-2px);box-shadow:${t.shadow}}
+    .stat:hover::after{opacity:1}
+    .stat.blue::after{background:linear-gradient(90deg,${t.blue},transparent)}
+    .stat.green::after{background:linear-gradient(90deg,${t.green},transparent)}
+    .stat.linkedin::after{background:linear-gradient(90deg,${t.linkedin},transparent)}
+    .stat.red::after{background:linear-gradient(90deg,${t.red},transparent)}
+    .card{background:${t.bgCard};border:1px solid ${t.border};border-radius:14px;padding:24px;box-shadow:${dark ? 'none' : '0 1px 4px rgba(0,0,0,0.05)'}}
+    .trow:hover{background:${t.bgHover}!important}
+    .pill{padding:5px 11px;border-radius:6px;border:1px solid ${t.border};background:transparent;color:${t.textMuted};font-size:11.5px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .15s;font-weight:500}
+    .pill:hover{border-color:${t.borderHi};color:${t.text}}
+    .pill.on{border-color:${t.blue};background:${t.blueGlow};color:${t.blue}}
+    .pill:disabled{opacity:.35;cursor:default}
+    .btn-primary{padding:9px 20px;background:${t.blue};color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:'Sora',sans-serif;transition:all .15s}
+    .btn-primary:hover{filter:brightness(1.1);box-shadow:0 0 20px ${t.blue}50}
+    .btn-primary:disabled{opacity:.45;cursor:default;box-shadow:none;filter:none}
+    .btn-ghost{padding:9px 20px;background:transparent;color:${t.textMuted};border:1px solid ${t.border};border-radius:8px;cursor:pointer;font-size:13.5px;font-family:'Sora',sans-serif;transition:all .15s}
+    .btn-ghost:hover{border-color:${t.borderHi};color:${t.text}}
+    .btn-danger{padding:5px 12px;background:transparent;color:${t.red};border:1px solid ${t.red}40;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Sora',sans-serif;transition:all .15s}
+    .btn-danger:hover{background:${t.red}12;border-color:${t.red}}
+    .inp{width:100%;padding:10px 13px;background:${t.inputBg};border:1px solid ${t.border};border-radius:8px;color:${t.text};font-size:13.5px;font-family:'Sora',sans-serif;outline:none;transition:border-color .15s}
+    .inp:focus{border-color:${t.blue};box-shadow:0 0 0 3px ${t.blueGlow}}
+    .inp::placeholder{color:${t.textDim}}
+    .lbl{color:${t.textDim};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+    .shimmer{background:linear-gradient(90deg,transparent,${t.blue}30,transparent);background-size:200% 100%;animation:shimmer 1.4s infinite}
+    .theme-toggle{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid ${t.border};background:${t.bgHover};cursor:pointer;transition:all .15s;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:${t.textMuted}}
+    .theme-toggle:hover{border-color:${t.borderHi};color:${t.text}}
+  `;
+}
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, t }: { status: string; t: ReturnType<typeof makeTheme> }) {
   const s = (status || '').toUpperCase();
   const m: Record<string, [string, string]> = {
-    IN_PROGRESS: [C.green, C.greenDim], ACTIVE: [C.green, C.greenDim], RUNNING: [C.green, C.greenDim],
-    PAUSED: [C.amber, '#2d1f00'], FINISHED: [C.blue, C.blueDim], COMPLETED: [C.blue, C.blueDim],
-    FAILED: [C.red, '#2d0a0a'], CANCELED: [C.red, '#2d0a0a'], DRAFT: [C.textMuted, C.bgHover],
+    IN_PROGRESS: [t.green, t.greenDim], ACTIVE: [t.green, t.greenDim], RUNNING: [t.green, t.greenDim],
+    PAUSED: [t.amber, t.warnBg], FINISHED: [t.blue, t.blueDim], COMPLETED: [t.blue, t.blueDim],
+    FAILED: [t.red, '#2d0a0a'], CANCELED: [t.red, '#2d0a0a'], DRAFT: [t.textMuted, t.bgHover],
   };
-  const [color, bg] = m[s] || [C.textMuted, C.bgHover];
+  const [color, bg] = m[s] || [t.textMuted, t.bgHover];
   const label = s === 'IN_PROGRESS' ? 'Active' : s.charAt(0) + s.slice(1).toLowerCase();
   const live = ['IN_PROGRESS', 'ACTIVE', 'RUNNING'].includes(s);
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 20, background: bg, color, fontSize: 11, fontWeight: 600, letterSpacing: '.02em' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 20, background: bg, color, fontSize: 11, fontWeight: 600 }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, display: 'inline-block', animation: live ? 'pulseDot 2s infinite' : 'none' }} />
       {label}
     </span>
   );
 }
 
-function StatCard({ label, value, sub, accent, cls = '' }: { label: string; value: string | number; sub?: string; accent: 'blue' | 'green' | 'red' | 'linkedin'; cls?: string }) {
-  const ac = { blue: C.blue, green: C.green, red: C.red, linkedin: C.linkedin }[accent];
-  const ab = { blue: C.blueGlow, green: 'rgba(16,185,129,.08)', red: 'rgba(239,68,68,.08)', linkedin: 'rgba(10,132,255,.1)' }[accent];
+function StatCard({ label, value, sub, accent, cls = '', t }: {
+  label: string; value: string | number; sub?: string;
+  accent: 'blue' | 'green' | 'red' | 'linkedin';
+  cls?: string; t: ReturnType<typeof makeTheme>;
+}) {
+  const ac = { blue: t.blue, green: t.green, red: t.red, linkedin: t.linkedin }[accent];
+  const ab = { blue: t.blueGlow, green: `${t.green}14`, red: `${t.red}12`, linkedin: `${t.linkedin}14` }[accent];
   return (
     <div className={`stat ${accent} fu ${cls}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, background: ab, border: `1px solid ${ac}25`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: ac, opacity: .75 }} />
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: ab, border: `1px solid ${ac}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: ac, opacity: .8 }} />
         </div>
-        {sub && <span style={{ color: C.textMuted, fontSize: 11, background: C.bgHover, padding: '2px 8px', borderRadius: 6, fontFamily: "'JetBrains Mono', monospace" }}>{sub}</span>}
+        {sub && <span style={{ color: t.textMuted, fontSize: 11, background: t.bgHover, padding: '2px 8px', borderRadius: 6, fontFamily: "'JetBrains Mono', monospace", border: `1px solid ${t.border}` }}>{sub}</span>}
       </div>
-      <div style={{ fontSize: 30, fontWeight: 700, color: C.text, lineHeight: 1, marginBottom: 6, letterSpacing: '-.03em', fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
-      <div style={{ color: C.textMuted, fontSize: 12.5, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 30, fontWeight: 700, color: t.text, lineHeight: 1, marginBottom: 6, letterSpacing: '-.03em', fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+      <div style={{ color: t.textMuted, fontSize: 12.5, fontWeight: 500 }}>{label}</div>
     </div>
   );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function Tip({ active, payload, label }: any) {
+function ChartTip({ active, payload, label, t }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: C.bgCard, border: `1px solid ${C.borderHi}`, borderRadius: 10, padding: '11px 15px', fontSize: 12, boxShadow: '0 8px 40px rgba(0,0,0,.6)' }}>
-      <div style={{ color: C.textMuted, marginBottom: 8, fontWeight: 500, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>{label}</div>
+    <div style={{ background: t.bgCard, border: `1px solid ${t.borderHi}`, borderRadius: 10, padding: '11px 15px', fontSize: 12, boxShadow: t.shadow }}>
+      <div style={{ color: t.textMuted, marginBottom: 8, fontWeight: 500, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>{label}</div>
       {payload.map((p: { name: string; value: number; color: string }, i: number) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, display: 'inline-block', flexShrink: 0 }} />
-          <span style={{ color: C.textMuted }}>{p.name}:</span>
-          <span style={{ color: C.text, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{p.value}</span>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+          <span style={{ color: t.textMuted }}>{p.name}:</span>
+          <span style={{ color: t.text, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{p.value}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function DateFilter({ v, set }: { v: 30 | 60 | 90 | 'all'; set: (x: 30 | 60 | 90 | 'all') => void }) {
+function DateFilter({ v, set, t }: { v: 30 | 60 | 90 | 'all'; set: (x: 30 | 60 | 90 | 'all') => void; t: ReturnType<typeof makeTheme> }) {
+  void t;
   return (
     <div style={{ display: 'flex', gap: 4 }}>
       {([30, 60, 90, 'all'] as (30 | 60 | 90 | 'all')[]).map(x => (
-        <button key={x} className={`pill ${v === x ? 'on' : ''}`} onClick={() => set(x)}>
+        <button key={String(x)} className={`pill ${v === x ? 'on' : ''}`} onClick={() => set(x)}>
           {x === 'all' ? 'All' : `${x}D`}
         </button>
       ))}
@@ -140,17 +180,28 @@ function DateFilter({ v, set }: { v: 30 | 60 | 90 | 'all'; set: (x: 30 | 60 | 90
   );
 }
 
-function Sec({ title, color, count }: { title: string; color: string; count?: number }) {
+function Sec({ title, color, count, t }: { title: string; color: string; count?: number; t: ReturnType<typeof makeTheme> }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
       <div style={{ width: 3, height: 18, borderRadius: 2, background: color }} />
-      <span style={{ fontWeight: 700, fontSize: 14.5, color: C.text }}>{title}</span>
-      {count !== undefined && <span style={{ background: `${color}1a`, color, fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 20, letterSpacing: '.04em' }}>{count} campaigns</span>}
+      <span style={{ fontWeight: 700, fontSize: 14.5, color: t.text }}>{title}</span>
+      {count !== undefined && <span style={{ background: `${color}18`, color, fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>{count} campaigns</span>}
     </div>
   );
 }
 
+function TH({ children, t }: { children: React.ReactNode; t: ReturnType<typeof makeTheme> }) {
+  return (
+    <th style={{ padding: '10px 14px', textAlign: 'left', color: t.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', whiteSpace: 'nowrap', borderBottom: `1px solid ${t.border}` }}>{children}</th>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const [dark, setDark] = useState(false);
+  const t = useMemo(() => makeTheme(dark), [dark]);
+  const css = useMemo(() => buildCss(t, dark), [t, dark]);
+
   const [user, setUser] = useState<User | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -226,10 +277,10 @@ export default function DashboardPage() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Sora', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Sora', sans-serif" }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: `linear-gradient(135deg, ${C.blue}, #6366f1)`, margin: '0 auto 16px', opacity: .9 }} />
-        <div style={{ color: C.textMuted, fontSize: 13 }}>Loading...</div>
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: `linear-gradient(135deg, ${t.blue}, #6366f1)`, margin: '0 auto 16px', opacity: .9 }} />
+        <div style={{ color: t.textMuted, fontSize: 13 }}>Loading...</div>
       </div>
     </div>
   );
@@ -252,12 +303,28 @@ export default function DashboardPage() {
     return ts.filter(d => d.date >= cs);
   })();
 
-  const emailChart = [...eCamps]
+  // Email chart: top 10 campaigns by sent, for overview bar chart
+  const emailOverviewChart = [...eCamps]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .sort((a: any, b: any) => (b.sent || 0) - (a.sent || 0))
+    .slice(0, 10)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((c: any) => ({
+      name: (c.name || '').length > 20 ? c.name.slice(0, 20) + '…' : c.name,
+      sent: c.sent || 0,
+      replies: c.replies || 0,
+    }));
+
+  const emailChartFull = [...eCamps]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .sort((a: any, b: any) => (b.sent || 0) - (a.sent || 0))
     .slice(0, 15)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((c: any) => ({ name: (c.name || '').length > 24 ? c.name.slice(0, 24) + '…' : c.name, sent: c.sent || 0, replies: c.replies || 0 }));
+    .map((c: any) => ({
+      name: (c.name || '').length > 24 ? c.name.slice(0, 24) + '…' : c.name,
+      sent: c.sent || 0,
+      replies: c.replies || 0,
+    }));
 
   const totalPages = Math.ceil(eCamps.length / PER_PAGE);
   const paged = eCamps.slice((emailPage - 1) * PER_PAGE, emailPage * PER_PAGE);
@@ -269,40 +336,46 @@ export default function DashboardPage() {
     ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: '⚙' }] : []),
   ];
 
-  const TH = ({ children }: { children: React.ReactNode }) => (
-    <th style={{ padding: '10px 14px', textAlign: 'left', color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{children}</th>
-  );
-
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: G }} />
-      <div style={{ display: 'flex', minHeight: '100vh', background: C.bg }}>
+      <style dangerouslySetInnerHTML={{ __html: css }} />
+      <div style={{ display: 'flex', minHeight: '100vh', background: t.bg }}>
 
-        {/* ── Sidebar ──────────────────────────────────────── */}
-        <aside style={{ width: 218, minHeight: '100vh', background: C.bgCard, borderRight: `1px solid ${C.border}`, position: 'fixed', left: 0, top: 0, bottom: 0, overflowY: 'auto', zIndex: 20, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '20px 18px 16px', borderBottom: `1px solid ${C.border}` }}>
+        {/* ── Sidebar ──────────────────────────────── */}
+        <aside style={{
+          width: 218, minHeight: '100vh', background: t.bgCard,
+          borderRight: `1px solid ${t.border}`, position: 'fixed',
+          left: 0, top: 0, bottom: 0, overflowY: 'auto', zIndex: 20,
+          display: 'flex', flexDirection: 'column',
+          boxShadow: dark ? 'none' : '2px 0 12px rgba(0,0,0,0.06)',
+        }}>
+          {/* Logo — centered */}
+          <div style={{ padding: '22px 18px 18px', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Founderled" style={{ width: 126, height: 'auto', display: 'block', filter: 'brightness(1.15) saturate(1.1)' }} />
+            <img src="/logo.png" alt="Founderled" style={{ width: 130, height: 'auto', display: 'block', filter: dark ? 'brightness(1.15)' : 'none' }} />
           </div>
 
+          {/* Client selector */}
           {user?.role === 'admin' && clients.length > 0 && (
             <div style={{ padding: '14px 14px 6px' }}>
               <div className="lbl">Client</div>
               <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Sora', sans-serif", cursor: 'pointer', outline: 'none' }}>
+                style={{ width: '100%', padding: '8px 10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 13, fontFamily: "'Sora', sans-serif", cursor: 'pointer', outline: 'none' }}>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           )}
 
+          {/* Nav */}
           <nav style={{ padding: '10px 10px', flex: 1 }}>
             {navItems.map(item => (
               <button key={item.id} className={`nav-btn ${activeTab === item.id ? 'on' : ''}`}
                 onClick={() => setActiveTab(item.id as typeof activeTab)}>
                 <span style={{
-                  width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: activeTab === item.id ? C.blueGlow : 'transparent',
-                  border: `1px solid ${activeTab === item.id ? C.blue + '30' : 'transparent'}`,
+                  width: 28, height: 28, borderRadius: 7,
+                  background: activeTab === item.id ? t.blueGlow : 'transparent',
+                  border: `1px solid ${activeTab === item.id ? t.blue + '30' : 'transparent'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: item.mono ? 10 : 12, fontWeight: 700, flexShrink: 0, transition: 'all .15s',
                   fontFamily: item.mono ? "'JetBrains Mono', monospace" : 'inherit',
                 }}>
@@ -313,112 +386,150 @@ export default function DashboardPage() {
             ))}
           </nav>
 
-          <div style={{ padding: 14, borderTop: `1px solid ${C.border}` }}>
+          {/* User footer */}
+          <div style={{ padding: 14, borderTop: `1px solid ${t.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${C.blue}, #6366f1)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', fontWeight: 700, flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${t.blue}, #6366f1)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', fontWeight: 700, flexShrink: 0 }}>
                 {user?.name?.[0]?.toUpperCase() || '?'}
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ color: C.text, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-                <div style={{ color: C.textDim, fontSize: 11, textTransform: 'capitalize' }}>{user?.role}</div>
+                <div style={{ color: t.text, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
+                <div style={{ color: t.textDim, fontSize: 11, textTransform: 'capitalize' }}>{user?.role}</div>
               </div>
             </div>
             <button className="btn-ghost" onClick={logout} style={{ width: '100%', textAlign: 'center', fontSize: 12.5, padding: '7px 14px' }}>Sign out</button>
           </div>
         </aside>
 
-        {/* ── Main ─────────────────────────────────────────── */}
-        <main style={{ marginLeft: 218, padding: '36px 40px', minHeight: '100vh', flex: 1, maxWidth: 'calc(100vw - 218px)' }}>
+        {/* ── Main ─────────────────────────────────── */}
+        <main style={{ marginLeft: 218, padding: '32px 40px', minHeight: '100vh', flex: 1, maxWidth: 'calc(100vw - 218px)' }}>
 
           {/* Page header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
             <div>
-              <div style={{ color: C.textDim, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.9px', marginBottom: 7 }}>
+              <div style={{ color: t.textDim, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.9px', marginBottom: 7 }}>
                 {activeTab === 'admin' ? 'System Admin' : clientName}
               </div>
-              <h1 style={{ fontSize: 27, fontWeight: 700, color: C.text, lineHeight: 1.15, letterSpacing: '-.025em' }}>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: t.text, lineHeight: 1.15, letterSpacing: '-.025em' }}>
                 {activeTab === 'overview' && 'Performance Overview'}
                 {activeTab === 'email' && 'Email Campaigns'}
                 {activeTab === 'linkedin' && 'LinkedIn Outreach'}
                 {activeTab === 'admin' && 'Admin Panel'}
               </h1>
             </div>
-            {activeTab !== 'admin' && (
-              <button className="btn-primary" onClick={() => loadDash(selectedClientId)} disabled={dashLoading}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4 }}>
-                <span style={{ display: 'inline-block', animation: dashLoading ? 'spin .8s linear infinite' : 'none', fontSize: 14 }}>↻</span>
-                {dashLoading ? 'Refreshing...' : 'Refresh'}
+
+            {/* Right controls: theme toggle + refresh */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+              {/* Light/Dark toggle */}
+              <button className="theme-toggle" onClick={() => setDark(d => !d)} title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                <span style={{ fontSize: 14 }}>{dark ? '☀️' : '🌙'}</span>
+                <span>{dark ? 'Light' : 'Dark'}</span>
               </button>
-            )}
+
+              {activeTab !== 'admin' && (
+                <button className="btn-primary" onClick={() => loadDash(selectedClientId)} disabled={dashLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ display: 'inline-block', animation: dashLoading ? 'spin .8s linear infinite' : 'none', fontSize: 14 }}>↻</span>
+                  {dashLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Loading */}
+          {/* Loading bar */}
           {dashLoading && (
             <div style={{ textAlign: 'center', padding: '80px 40px' }}>
-              <div style={{ width: 50, height: 3, background: C.border, borderRadius: 2, margin: '0 auto 18px', overflow: 'hidden' }}>
+              <div style={{ width: 50, height: 3, background: t.border, borderRadius: 2, margin: '0 auto 18px', overflow: 'hidden' }}>
                 <div className="shimmer" style={{ height: '100%', width: '55%' }} />
               </div>
-              <div style={{ color: C.textMuted, fontSize: 13.5 }}>Fetching live data from Email Bison &amp; HeyReach...</div>
+              <div style={{ color: t.textMuted, fontSize: 13.5 }}>Fetching live data from Email Bison &amp; HeyReach...</div>
             </div>
           )}
 
           {!dashLoading && (
             <>
-
-              {/* ══ OVERVIEW ══════════════════════════════════ */}
+              {/* ══ OVERVIEW ══════════════════════════════ */}
               {activeTab === 'overview' && (
                 <div className="fu">
-                  <Sec title="Email Performance" color={C.blue} count={ea.totalCampaigns} />
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 34 }}>
-                    <StatCard label="Emails Sent"      value={(ea.totalSent || 0).toLocaleString()}     accent="blue"    cls="d1" />
-                    <StatCard label="Replies"          value={(ea.totalReplies || 0).toLocaleString()}   sub={`${ea.replyRate || 0}% rate`}   accent="green"   cls="d2" />
-                    <StatCard label="Bounces"          value={(ea.totalBounces || 0).toLocaleString()}   sub={`${ea.bounceRate || 0}% rate`}  accent="red"     cls="d3" />
-                    <StatCard label="Active Campaigns" value={ea.activeCampaigns || 0}                   accent="blue"    cls="d4" />
+                  {/* Email section */}
+                  <Sec title="Email Performance" color={t.blue} count={ea.totalCampaigns} t={t} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 24 }}>
+                    <StatCard label="Emails Sent"      value={(ea.totalSent || 0).toLocaleString()}     accent="blue"  cls="d1" t={t} />
+                    <StatCard label="Replies"          value={(ea.totalReplies || 0).toLocaleString()}   sub={`${ea.replyRate || 0}% rate`}   accent="green" cls="d2" t={t} />
+                    <StatCard label="Bounces"          value={(ea.totalBounces || 0).toLocaleString()}   sub={`${ea.bounceRate || 0}% rate`}  accent="red"   cls="d3" t={t} />
+                    <StatCard label="Active Campaigns" value={ea.activeCampaigns || 0}                   accent="blue"  cls="d4" t={t} />
                   </div>
 
                   {eDebug?.error && (
-                    <div style={{ background: '#1a1200', border: '1px solid #3d2e00', borderRadius: 10, padding: '12px 16px', marginBottom: 28, fontSize: 13, color: C.amber }}>
+                    <div style={{ background: t.warnBg, border: `1px solid ${t.warnBorder}`, borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: t.warnText }}>
                       <strong>Email Bison API notice</strong> — error <code style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }}>{eDebug.error}</code>. Check your API key and domain in Admin Settings.
                     </div>
                   )}
 
-                  <Sec title="LinkedIn Performance" color={C.linkedin} count={la.totalCampaigns} />
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 34 }}>
-                    <StatCard label="Connections Sent" value={(la.totalConnectionsSent || 0).toLocaleString()}    accent="linkedin" cls="d1" />
-                    <StatCard label="Accepted"         value={(la.totalConnectionsAccepted || 0).toLocaleString()} sub={`${la.acceptanceRate || 0}% rate`} accent="green" cls="d2" />
-                    <StatCard label="Messages Sent"    value={(la.totalMessagesSent || 0).toLocaleString()}        accent="linkedin" cls="d3" />
-                    <StatCard label="Replies"          value={(la.totalReplies || 0).toLocaleString()}             sub={`${la.replyRate || 0}% rate`} accent="green" cls="d4" />
-                    <StatCard label="Active Campaigns" value={la.activeCampaigns || 0}                             accent={la.activeCampaigns > 0 ? 'green' : 'linkedin'} cls="d5" />
+                  {/* Email activity chart */}
+                  {emailOverviewChart.length > 0 && (
+                    <div className="card fu" style={{ marginBottom: 32 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 3 }}>Email Campaign Activity</div>
+                          <div style={{ color: t.textMuted, fontSize: 12 }}>
+                            {emailOverviewChart.length < eCamps.length ? `Top ${emailOverviewChart.length} of ${eCamps.length} campaigns` : `All ${eCamps.length} campaigns`}
+                          </div>
+                        </div>
+                      </div>
+                      <ResponsiveContainer width="100%" height={Math.max(180, emailOverviewChart.length * 30)}>
+                        <BarChart data={emailOverviewChart} layout="vertical" margin={{ top: 0, right: 36, bottom: 0, left: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.border} horizontal={false} />
+                          <XAxis type="number" tick={{ fill: t.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
+                          <YAxis dataKey="name" type="category" tick={{ fill: t.textMuted, fontSize: 11.5 }} tickLine={false} axisLine={false} width={160} />
+                          <Tooltip content={(props) => <ChartTip {...props} t={t} />} cursor={{ fill: t.blueGlow }} />
+                          <Legend wrapperStyle={{ fontSize: 12, color: t.textMuted }} />
+                          <Bar dataKey="sent" name="Sent" fill={t.blue} opacity={0.85} radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="replies" name="Replies" fill={t.green} opacity={0.85} radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* LinkedIn section */}
+                  <Sec title="LinkedIn Performance" color={t.linkedin} count={la.totalCampaigns} t={t} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 24 }}>
+                    <StatCard label="Connections Sent" value={(la.totalConnectionsSent || 0).toLocaleString()}    accent="linkedin" cls="d1" t={t} />
+                    <StatCard label="Accepted"         value={(la.totalConnectionsAccepted || 0).toLocaleString()} sub={`${la.acceptanceRate || 0}% rate`} accent="green" cls="d2" t={t} />
+                    <StatCard label="Messages Sent"    value={(la.totalMessagesSent || 0).toLocaleString()}        accent="linkedin" cls="d3" t={t} />
+                    <StatCard label="Replies"          value={(la.totalReplies || 0).toLocaleString()}             sub={`${la.replyRate || 0}% rate`} accent="green" cls="d4" t={t} />
+                    <StatCard label="Active Campaigns" value={la.activeCampaigns || 0}                             accent={la.activeCampaigns > 0 ? 'green' : 'linkedin'} cls="d5" t={t} />
                   </div>
 
+                  {/* LinkedIn activity chart */}
                   {filteredTs.length > 0 && (
                     <div className="card fu">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text, marginBottom: 3 }}>LinkedIn Activity</div>
-                          <div style={{ color: C.textMuted, fontSize: 12 }}>{filteredTs.length} active days</div>
+                          <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 3 }}>LinkedIn Activity</div>
+                          <div style={{ color: t.textMuted, fontSize: 12 }}>{filteredTs.length} active days</div>
                         </div>
-                        <DateFilter v={dateRange} set={setDateRange} />
+                        <DateFilter v={dateRange} set={setDateRange} t={t} />
                       </div>
                       <ResponsiveContainer width="100%" height={220}>
                         <AreaChart data={filteredTs} margin={{ top: 5, right: 8, bottom: 5, left: 0 }}>
                           <defs>
                             <linearGradient id="gS" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={C.linkedin} stopOpacity={0.25} />
-                              <stop offset="95%" stopColor={C.linkedin} stopOpacity={0} />
+                              <stop offset="5%" stopColor={t.linkedin} stopOpacity={dark ? 0.25 : 0.15} />
+                              <stop offset="95%" stopColor={t.linkedin} stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={C.green} stopOpacity={0.25} />
-                              <stop offset="95%" stopColor={C.green} stopOpacity={0} />
+                              <stop offset="5%" stopColor={t.green} stopOpacity={dark ? 0.25 : 0.15} />
+                              <stop offset="95%" stopColor={t.green} stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                          <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                          <YAxis tick={{ fill: C.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
-                          <Tooltip content={<Tip />} />
-                          <Legend wrapperStyle={{ fontSize: 12, color: C.textMuted }} />
-                          <Area type="monotone" dataKey="connectionsSent" name="Sent" stroke={C.linkedin} fill="url(#gS)" strokeWidth={2} dot={false} />
-                          <Area type="monotone" dataKey="connectionsAccepted" name="Accepted" stroke={C.green} fill="url(#gA)" strokeWidth={2} dot={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
+                          <XAxis dataKey="date" tick={{ fill: t.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                          <YAxis tick={{ fill: t.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
+                          <Tooltip content={(props) => <ChartTip {...props} t={t} />} />
+                          <Legend wrapperStyle={{ fontSize: 12, color: t.textMuted }} />
+                          <Area type="monotone" dataKey="connectionsSent" name="Sent" stroke={t.linkedin} fill="url(#gS)" strokeWidth={2} dot={false} />
+                          <Area type="monotone" dataKey="connectionsAccepted" name="Accepted" stroke={t.green} fill="url(#gA)" strokeWidth={2} dot={false} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -426,46 +537,45 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* ══ EMAIL ═══════════════════════════════════ */}
+              {/* ══ EMAIL ═════════════════════════════════ */}
               {activeTab === 'email' && (
                 <div className="fu">
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 28 }}>
-                    <StatCard label="Total Sent"       value={(ea.totalSent || 0).toLocaleString()}    accent="blue"    cls="d1" />
-                    <StatCard label="Reply Rate"       value={`${ea.replyRate || 0}%`}                sub={`${(ea.totalReplies || 0).toLocaleString()} replies`}  accent="green" cls="d2" />
-                    <StatCard label="Bounce Rate"      value={`${ea.bounceRate || 0}%`}               sub={`${(ea.totalBounces || 0).toLocaleString()} bounces`}  accent="red"   cls="d3" />
-                    <StatCard label="Total Campaigns"  value={ea.totalCampaigns || 0}                  accent="blue"    cls="d4" />
-                    <StatCard label="Active"           value={ea.activeCampaigns || 0}                 accent={ea.activeCampaigns > 0 ? 'green' : 'blue'} cls="d5" />
+                    <StatCard label="Total Sent"      value={(ea.totalSent || 0).toLocaleString()}   accent="blue"  cls="d1" t={t} />
+                    <StatCard label="Reply Rate"      value={`${ea.replyRate || 0}%`}               sub={`${(ea.totalReplies || 0).toLocaleString()} replies`}  accent="green" cls="d2" t={t} />
+                    <StatCard label="Bounce Rate"     value={`${ea.bounceRate || 0}%`}              sub={`${(ea.totalBounces || 0).toLocaleString()} bounces`}  accent="red"   cls="d3" t={t} />
+                    <StatCard label="Total Campaigns" value={ea.totalCampaigns || 0}                 accent="blue"  cls="d4" t={t} />
+                    <StatCard label="Active"          value={ea.activeCampaigns || 0}                accent={ea.activeCampaigns > 0 ? 'green' : 'blue'} cls="d5" t={t} />
                   </div>
 
                   {eDebug?.error && (
-                    <div style={{ background: '#1a1200', border: '1px solid #3d2e00', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: C.amber }}>
-                      <strong>Email Bison API issue</strong> — error code <code style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }}>{eDebug.error}</code>.
-                      Check your API key and domain in Admin Settings.
-                      {eDebug.rawKeys && <div style={{ marginTop: 4, color: C.textMuted }}>Response keys: {eDebug.rawKeys.join(', ')}</div>}
+                    <div style={{ background: t.warnBg, border: `1px solid ${t.warnBorder}`, borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: t.warnText }}>
+                      <strong>Email Bison API issue</strong> — error <code style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }}>{eDebug.error}</code>.
+                      {eDebug.rawKeys && <div style={{ marginTop: 4, color: t.textMuted, fontSize: 12 }}>Response keys: {eDebug.rawKeys.join(', ')}</div>}
                     </div>
                   )}
 
                   {eCamps.length > 0 ? (
                     <>
-                      {emailChart.length > 0 && (
+                      {emailChartFull.length > 0 && (
                         <div className="card fu" style={{ marginBottom: 18 }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                             <div>
-                              <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text, marginBottom: 3 }}>Campaign Performance</div>
-                              <div style={{ color: C.textMuted, fontSize: 12 }}>
-                                {emailChart.length < eCamps.length ? `Top ${emailChart.length} of ${eCamps.length} campaigns` : `All ${eCamps.length} campaigns`}
+                              <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 3 }}>Campaign Performance</div>
+                              <div style={{ color: t.textMuted, fontSize: 12 }}>
+                                {emailChartFull.length < eCamps.length ? `Top ${emailChartFull.length} of ${eCamps.length}` : `All ${eCamps.length} campaigns`}
                               </div>
                             </div>
                           </div>
-                          <ResponsiveContainer width="100%" height={Math.max(200, emailChart.length * 31)}>
-                            <BarChart data={emailChart} layout="vertical" margin={{ top: 0, right: 36, bottom: 0, left: 10 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
-                              <XAxis type="number" tick={{ fill: C.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
-                              <YAxis dataKey="name" type="category" tick={{ fill: C.textMuted, fontSize: 12 }} tickLine={false} axisLine={false} width={175} />
-                              <Tooltip content={<Tip />} cursor={{ fill: C.blueGlow }} />
-                              <Legend wrapperStyle={{ fontSize: 12, color: C.textMuted }} />
-                              <Bar dataKey="sent" name="Sent" fill={C.blue} opacity={0.85} radius={[0, 4, 4, 0]} />
-                              <Bar dataKey="replies" name="Replies" fill={C.green} opacity={0.85} radius={[0, 4, 4, 0]} />
+                          <ResponsiveContainer width="100%" height={Math.max(200, emailChartFull.length * 31)}>
+                            <BarChart data={emailChartFull} layout="vertical" margin={{ top: 0, right: 36, bottom: 0, left: 10 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={t.border} horizontal={false} />
+                              <XAxis type="number" tick={{ fill: t.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
+                              <YAxis dataKey="name" type="category" tick={{ fill: t.textMuted, fontSize: 12 }} tickLine={false} axisLine={false} width={175} />
+                              <Tooltip content={(props) => <ChartTip {...props} t={t} />} cursor={{ fill: t.blueGlow }} />
+                              <Legend wrapperStyle={{ fontSize: 12, color: t.textMuted }} />
+                              <Bar dataKey="sent" name="Sent" fill={t.blue} opacity={0.85} radius={[0, 4, 4, 0]} />
+                              <Bar dataKey="replies" name="Replies" fill={t.green} opacity={0.85} radius={[0, 4, 4, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -473,31 +583,31 @@ export default function DashboardPage() {
 
                       <div className="card fu">
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text }}>
-                            All Campaigns <span style={{ color: C.textMuted, fontWeight: 400, fontSize: 13 }}>({eCamps.length})</span>
+                          <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text }}>
+                            All Campaigns <span style={{ color: t.textMuted, fontWeight: 400, fontSize: 13 }}>({eCamps.length})</span>
                           </div>
                           {totalPages > 1 && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <button className="pill" onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} style={{ padding: '4px 10px' }}>‹</button>
-                              <span style={{ color: C.textMuted, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace" }}>{emailPage} / {totalPages}</span>
+                              <span style={{ color: t.textMuted, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace" }}>{emailPage} / {totalPages}</span>
                               <button className="pill" onClick={() => setEmailPage(p => Math.min(totalPages, p + 1))} disabled={emailPage === totalPages} style={{ padding: '4px 10px' }}>›</button>
                             </div>
                           )}
                         </div>
                         <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead><tr>{['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %'].map(h => <TH key={h}>{h}</TH>)}</tr></thead>
+                            <thead><tr>{['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
                             <tbody>
                               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {(paged as any[]).map((c: any) => (
-                                <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${C.border}` }}>
-                                  <td style={{ padding: '12px 14px', color: C.text, fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
-                                  <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} /></td>
-                                  <td style={{ padding: '12px 14px', color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.sent || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px', color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.replies || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px' }}><span style={{ color: C.blue, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{c.replyRate}%</span></td>
-                                  <td style={{ padding: '12px 14px', color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.bounces || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px' }}><span style={{ color: parseFloat(c.bounceRate) > 5 ? C.red : C.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{c.bounceRate}%</span></td>
+                                <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
+                                  <td style={{ padding: '12px 14px', color: t.text, fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
+                                  <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} t={t} /></td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.sent || 0).toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.replies || 0).toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px' }}><span style={{ color: t.blue, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{c.replyRate}%</span></td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.bounces || 0).toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px' }}><span style={{ color: parseFloat(c.bounceRate) > 5 ? t.red : t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{c.bounceRate}%</span></td>
                                 </tr>
                               ))}
                             </tbody>
@@ -508,27 +618,27 @@ export default function DashboardPage() {
                   ) : (
                     <div className="card" style={{ textAlign: 'center', padding: '64px 40px' }}>
                       <div style={{ fontSize: 32, marginBottom: 12, opacity: .25 }}>✉</div>
-                      <div style={{ fontWeight: 600, color: C.text, marginBottom: 6 }}>No email campaigns found</div>
-                      <div style={{ fontSize: 13, color: C.textMuted }}>{eDebug?.error ? 'API returned an error — check your Email Bison API key' : 'Email Bison campaigns will appear here once data is available'}</div>
+                      <div style={{ fontWeight: 600, color: t.text, marginBottom: 6 }}>No email campaigns found</div>
+                      <div style={{ fontSize: 13, color: t.textMuted }}>{eDebug?.error ? 'API returned an error — check your Email Bison API key' : 'Email Bison campaigns will appear here once data is available'}</div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* ══ LINKEDIN ═══════════════════════════════ */}
+              {/* ══ LINKEDIN ══════════════════════════════ */}
               {activeTab === 'linkedin' && (
                 <div className="fu">
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 28 }}>
-                    <StatCard label="Connections Sent" value={(la.totalConnectionsSent || 0).toLocaleString()}    accent="linkedin" cls="d1" />
-                    <StatCard label="Acceptance Rate"  value={`${la.acceptanceRate || 0}%`}                     sub={`${(la.totalConnectionsAccepted || 0).toLocaleString()} accepted`} accent="green" cls="d2" />
-                    <StatCard label="Messages Sent"    value={(la.totalMessagesSent || 0).toLocaleString()}       accent="linkedin" cls="d3" />
-                    <StatCard label="Reply Rate"       value={`${la.replyRate || 0}%`}                          sub={`${(la.totalReplies || 0).toLocaleString()} replies`} accent="green" cls="d4" />
-                    <StatCard label="Total Campaigns"  value={la.totalCampaigns || 0}                            accent="linkedin" cls="d5" />
-                    <StatCard label="Active Campaigns" value={la.activeCampaigns || 0}                           accent={la.activeCampaigns > 0 ? 'green' : 'linkedin'} cls="d6" />
+                    <StatCard label="Connections Sent" value={(la.totalConnectionsSent || 0).toLocaleString()}    accent="linkedin" cls="d1" t={t} />
+                    <StatCard label="Acceptance Rate"  value={`${la.acceptanceRate || 0}%`}                     sub={`${(la.totalConnectionsAccepted || 0).toLocaleString()} accepted`} accent="green" cls="d2" t={t} />
+                    <StatCard label="Messages Sent"    value={(la.totalMessagesSent || 0).toLocaleString()}       accent="linkedin" cls="d3" t={t} />
+                    <StatCard label="Reply Rate"       value={`${la.replyRate || 0}%`}                          sub={`${(la.totalReplies || 0).toLocaleString()} replies`} accent="green" cls="d4" t={t} />
+                    <StatCard label="Total Campaigns"  value={la.totalCampaigns || 0}                            accent="linkedin" cls="d5" t={t} />
+                    <StatCard label="Active Campaigns" value={la.activeCampaigns || 0}                           accent={la.activeCampaigns > 0 ? 'green' : 'linkedin'} cls="d6" t={t} />
                   </div>
 
                   {lDebug && la.totalConnectionsSent === 0 && (
-                    <div style={{ background: '#1a1200', border: '1px solid #3d2e00', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: C.amber }}>
+                    <div style={{ background: t.warnBg, border: `1px solid ${t.warnBorder}`, borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: t.warnText }}>
                       HeyReach debug — stats: {lDebug.statsFulfilled ? 'OK' : 'failed'}, campaigns: {lDebug.campaignsFulfilled ? 'OK' : 'failed'}
                       {lDebug.statsRawKeys?.length > 0 && <span>, keys: [{lDebug.statsRawKeys.join(', ')}]</span>}
                     </div>
@@ -538,20 +648,20 @@ export default function DashboardPage() {
                     <div className="card fu" style={{ marginBottom: 18 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text, marginBottom: 3 }}>Daily Activity</div>
-                          <div style={{ color: C.textMuted, fontSize: 12 }}>{filteredTs.length} active days</div>
+                          <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 3 }}>Daily Activity</div>
+                          <div style={{ color: t.textMuted, fontSize: 12 }}>{filteredTs.length} active days</div>
                         </div>
-                        <DateFilter v={dateRange} set={setDateRange} />
+                        <DateFilter v={dateRange} set={setDateRange} t={t} />
                       </div>
                       <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={filteredTs} margin={{ top: 5, right: 8, bottom: 5, left: 0 }} barGap={2}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
-                          <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                          <YAxis tick={{ fill: C.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
-                          <Tooltip content={<Tip />} cursor={{ fill: C.blueGlow }} />
-                          <Legend wrapperStyle={{ fontSize: 12, color: C.textMuted }} />
-                          <Bar dataKey="connectionsSent" name="Sent" fill={C.linkedin} opacity={0.9} radius={[3, 3, 0, 0]} />
-                          <Bar dataKey="connectionsAccepted" name="Accepted" fill={C.green} opacity={0.9} radius={[3, 3, 0, 0]} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.border} vertical={false} />
+                          <XAxis dataKey="date" tick={{ fill: t.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                          <YAxis tick={{ fill: t.textDim, fontSize: 10.5 }} tickLine={false} axisLine={false} />
+                          <Tooltip content={(props) => <ChartTip {...props} t={t} />} cursor={{ fill: t.blueGlow }} />
+                          <Legend wrapperStyle={{ fontSize: 12, color: t.textMuted }} />
+                          <Bar dataKey="connectionsSent" name="Sent" fill={t.linkedin} opacity={0.9} radius={[3, 3, 0, 0]} />
+                          <Bar dataKey="connectionsAccepted" name="Accepted" fill={t.green} opacity={0.9} radius={[3, 3, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -559,24 +669,24 @@ export default function DashboardPage() {
 
                   {lCamps.length > 0 && (
                     <div className="card fu">
-                      <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text, marginBottom: 18 }}>
-                        LinkedIn Campaigns <span style={{ color: C.textMuted, fontWeight: 400, fontSize: 13 }}>({lCamps.length})</span>
+                      <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 18 }}>
+                        LinkedIn Campaigns <span style={{ color: t.textMuted, fontWeight: 400, fontSize: 13 }}>({lCamps.length})</span>
                       </div>
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                          <thead><tr>{['Campaign', 'Status', 'Total Leads', 'In Progress', 'Finished', 'Failed', 'Lead List', 'Started'].map(h => <TH key={h}>{h}</TH>)}</tr></thead>
+                          <thead><tr>{['Campaign', 'Status', 'Total Leads', 'In Progress', 'Finished', 'Failed', 'Lead List', 'Started'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
                           <tbody>
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {lCamps.map((c: any) => (
-                              <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${C.border}` }}>
-                                <td style={{ padding: '12px 14px', color: C.text, fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
-                                <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} /></td>
-                                <td style={{ padding: '12px 14px', color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.total || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: C.linkedin, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{(c.inProgress || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: C.green, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{(c.finished || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: c.failed > 0 ? C.red : C.textDim, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.failed || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: C.textMuted, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{c.listName || '—'}</td>
-                                <td style={{ padding: '12px 14px', color: C.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.startedAt ? new Date(c.startedAt).toLocaleDateString() : '—'}</td>
+                              <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
+                                <td style={{ padding: '12px 14px', color: t.text, fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
+                                <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} t={t} /></td>
+                                <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.total || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: t.linkedin, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{(c.inProgress || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: t.green, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{(c.finished || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: c.failed > 0 ? t.red : t.textDim, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.failed || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: t.textMuted, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{c.listName || '—'}</td>
+                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.startedAt ? new Date(c.startedAt).toLocaleDateString() : '—'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -591,10 +701,10 @@ export default function DashboardPage() {
               {activeTab === 'admin' && user?.role === 'admin' && (
                 <div className="fu">
                   <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
-                    {(['users', 'clients'] as const).map(t => (
-                      <button key={t} className={`pill ${adminTab === t ? 'on' : ''}`} onClick={() => setAdminTab(t)}
+                    {(['users', 'clients'] as const).map(tab => (
+                      <button key={tab} className={`pill ${adminTab === tab ? 'on' : ''}`} onClick={() => setAdminTab(tab)}
                         style={{ padding: '7px 20px', fontSize: 13, fontWeight: 600 }}>
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -602,13 +712,13 @@ export default function DashboardPage() {
                   {adminTab === 'users' && (
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <span style={{ color: C.textMuted, fontSize: 13 }}>{adminUsers.length} users</span>
+                        <span style={{ color: t.textMuted, fontSize: 13 }}>{adminUsers.length} users</span>
                         <button className="btn-primary" style={{ fontSize: 13, padding: '7px 16px' }} onClick={() => setShowAddUser(v => !v)}>+ Add User</button>
                       </div>
 
                       {showAddUser && (
-                        <div className="card" style={{ marginBottom: 16, borderColor: `${C.blue}40` }}>
-                          <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text, marginBottom: 18 }}>New User</div>
+                        <div className="card" style={{ marginBottom: 16, borderColor: `${t.blue}50` }}>
+                          <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 18 }}>New User</div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                             <div><div className="lbl">Name</div><input className="inp" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} placeholder="Full name" /></div>
                             <div><div className="lbl">Email</div><input className="inp" type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} placeholder="email@example.com" /></div>
@@ -636,20 +746,20 @@ export default function DashboardPage() {
 
                       <div className="card">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                          <thead><tr>{['Name', 'Email', 'Role', 'Client', ''].map(h => <TH key={h}>{h}</TH>)}</tr></thead>
+                          <thead><tr>{['Name', 'Email', 'Role', 'Client', ''].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
                           <tbody>
                             {adminUsers.map((u: DashboardUser) => (
-                              <tr key={u.id} className="trow" style={{ borderBottom: `1px solid ${C.border}` }}>
-                                <td style={{ padding: '12px 14px', color: C.text, fontWeight: 600 }}>{u.name}</td>
-                                <td style={{ padding: '12px 14px', color: C.textMuted, fontSize: 12 }}>{u.email}</td>
+                              <tr key={u.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
+                                <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600 }}>{u.name}</td>
+                                <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{u.email}</td>
                                 <td style={{ padding: '12px 14px' }}>
-                                  <span style={{ background: u.role === 'admin' ? C.blueGlow : C.linkedinBg, color: u.role === 'admin' ? C.blue : C.linkedin, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{u.role}</span>
+                                  <span style={{ background: u.role === 'admin' ? t.blueGlow : t.linkedinBg, color: u.role === 'admin' ? t.blue : t.linkedin, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{u.role}</span>
                                 </td>
-                                <td style={{ padding: '12px 14px', color: C.textDim, fontSize: 12 }}>{u.clientId ? adminClients.find(c => c.id === u.clientId)?.name || u.clientId : '—'}</td>
+                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 12 }}>{u.clientId ? adminClients.find(c => c.id === u.clientId)?.name || u.clientId : '—'}</td>
                                 <td style={{ padding: '12px 14px' }}><button className="btn-danger" onClick={() => delUser(u.id)}>Delete</button></td>
                               </tr>
                             ))}
-                            {adminUsers.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: C.textDim }}>No users yet</td></tr>}
+                            {adminUsers.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: t.textDim }}>No users yet</td></tr>}
                           </tbody>
                         </table>
                       </div>
@@ -659,13 +769,13 @@ export default function DashboardPage() {
                   {adminTab === 'clients' && (
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <span style={{ color: C.textMuted, fontSize: 13 }}>{adminClients.length} clients</span>
+                        <span style={{ color: t.textMuted, fontSize: 13 }}>{adminClients.length} clients</span>
                         <button className="btn-primary" style={{ fontSize: 13, padding: '7px 16px' }} onClick={() => setShowAddClient(v => !v)}>+ Add Client</button>
                       </div>
 
                       {showAddClient && (
-                        <div className="card" style={{ marginBottom: 16, borderColor: `${C.blue}40` }}>
-                          <div style={{ fontWeight: 600, fontSize: 14.5, color: C.text, marginBottom: 18 }}>New Client</div>
+                        <div className="card" style={{ marginBottom: 16, borderColor: `${t.blue}50` }}>
+                          <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 18 }}>New Client</div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                             <div><div className="lbl">Client Name</div><input className="inp" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} placeholder="e.g. Epsilon" /></div>
                             <div><div className="lbl">Email Bison Domain</div><input className="inp" value={newClient.emailBisonDomain} onChange={e => setNewClient({ ...newClient, emailBisonDomain: e.target.value })} placeholder="send.founderled.io" /></div>
@@ -681,18 +791,18 @@ export default function DashboardPage() {
 
                       <div className="card">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                          <thead><tr>{['Name', 'Email Bison Domain', 'EB Key', 'HeyReach Key', 'Added'].map(h => <TH key={h}>{h}</TH>)}</tr></thead>
+                          <thead><tr>{['Name', 'Email Bison Domain', 'EB Key', 'HeyReach Key', 'Added'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
                           <tbody>
                             {adminClients.map((c: Client) => (
-                              <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${C.border}` }}>
-                                <td style={{ padding: '12px 14px', color: C.text, fontWeight: 600 }}>{c.name}</td>
-                                <td style={{ padding: '12px 14px', color: C.textMuted, fontSize: 12 }}>{c.emailBisonDomain}</td>
-                                <td style={{ padding: '12px 14px', color: C.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.emailBisonKey ? c.emailBisonKey.slice(0, 14) + '...' : '—'}</td>
-                                <td style={{ padding: '12px 14px', color: C.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.heyreachKey ? c.heyreachKey.slice(0, 14) + '...' : '—'}</td>
-                                <td style={{ padding: '12px 14px', color: C.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
+                              <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
+                                <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600 }}>{c.name}</td>
+                                <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{c.emailBisonDomain}</td>
+                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.emailBisonKey ? c.emailBisonKey.slice(0, 14) + '...' : '—'}</td>
+                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.heyreachKey ? c.heyreachKey.slice(0, 14) + '...' : '—'}</td>
+                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
                               </tr>
                             ))}
-                            {adminClients.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: C.textDim }}>No clients yet</td></tr>}
+                            {adminClients.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: t.textDim }}>No clients yet</td></tr>}
                           </tbody>
                         </table>
                       </div>

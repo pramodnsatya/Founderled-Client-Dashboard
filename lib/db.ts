@@ -40,7 +40,7 @@ const SEED_DATA: DB = {
       email: "admin@founderled.io",
       passwordHash: "$2b$12$ODDVnnDjO7NMXkYXo3JQL.yBWswMlmc35UOKfVKFspMv2uXPxbAA2",
       role: "admin",
-      name: "Pramod",
+      name: "Admin",
       createdAt: "2026-03-10T00:00:00Z",
     }
   ],
