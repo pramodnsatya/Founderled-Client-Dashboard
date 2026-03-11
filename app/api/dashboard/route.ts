@@ -248,22 +248,30 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // byDayStats: sum last 30 active days
+  // byDayStats: return ALL active days (frontend will filter by date range)
   const linkedinTimeSeries = byDayRaw
     ? Object.entries(byDayRaw)
         .map(([date, s]) => {
           const stats = s as Record<string, number>;
           return {
             date: date.split('T')[0],
-            connectionsSent:     stats.connectionsSent     || 0,
-            connectionsAccepted: stats.connectionsAccepted || 0,
-            messages:            stats.messagesSent        || 0,
-            replies:             stats.totalMessageReplies || 0,
+            connectionsSent:     stats.connectionsSent       || 0,
+            connectionsAccepted: stats.connectionsAccepted   || 0,
+            messagesSent:        stats.messagesSent          || 0,
+            messagesStarted:     stats.totalMessageStarted   || 0,
+            replies:             stats.totalMessageReplies   || 0,
           };
         })
-        .filter(d => d.connectionsSent > 0 || d.connectionsAccepted > 0)
-        .slice(-30)
+        .filter(d => d.connectionsSent > 0 || d.connectionsAccepted > 0 || d.messagesStarted > 0)
+        .sort((a, b) => a.date.localeCompare(b.date))
     : [];
+
+  // Fix: use totalMessageStarted for "Messages Sent" — more accurate than messagesSent which only counts post-connection
+  if (linkedinAgg.totalMessagesSent === 0 && os?.totalMessageStarted > 0) {
+    linkedinAgg.totalMessagesSent = os.totalMessageStarted;
+  } else if (linkedinAgg.totalMessagesSent === 0) {
+    linkedinAgg.totalMessagesSent = linkedinTimeSeries.reduce((s, d) => s + d.messagesStarted, 0);
+  }
 
   return NextResponse.json({
     client: { id: client.id, name: client.name },
