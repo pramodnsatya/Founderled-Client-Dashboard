@@ -148,6 +148,7 @@ export async function GET(req: NextRequest) {
       emailAgg.totalBounces += bounces;
 
       const statusRaw = ((campaign.status as string) || '').toLowerCase();
+      if (statusRaw === 'draft') continue; // exclude drafts from charts and tables
       if (['active', 'running', 'in_progress', 'sending', 'scheduled'].includes(statusRaw)) emailAgg.activeCampaigns++;
 
       processedEmailCampaigns.push({
@@ -227,6 +228,7 @@ export async function GET(req: NextRequest) {
     // If we still have no stats, sum from campaign progressStats
     let progressSent = 0, progressFinished = 0;
     for (const c of linkedinCampaigns.items) {
+      if (c.status === 'DRAFT') continue; // exclude drafts from aggregate stats
       const ps = c.progressStats || {};
       progressSent     += (ps.totalUsers           || 0);
       progressFinished += (ps.totalUsersFinished    || 0);
@@ -238,6 +240,7 @@ export async function GET(req: NextRequest) {
       console.log(`[HeyReach] Used progressStats: sent=${progressSent}, finished=${progressFinished}`);
     }
     for (const c of linkedinCampaigns.items) {
+      if (c.status === 'DRAFT') continue; // exclude drafts from charts and tables
       const ps = c.progressStats || {};
       if (c.status === 'IN_PROGRESS' || c.status === 'STARTING') linkedinAgg.activeCampaigns++;
       processedLinkedinCampaigns.push({
