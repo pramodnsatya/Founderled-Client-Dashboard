@@ -317,10 +317,19 @@ export default function DashboardPage() {
   const lDebug = linkedin?._debug || null;
   const clientName = clients.find(c => c.id === selectedClientId)?.name || clientInfo?.name || 'Client';
 
-  const filteredTs = dateRange === 'all' ? ts : (() => {
+  const filteredTs = (() => {
+    if (dateRange === 'all') return ts;
     const cut = new Date(); cut.setDate(cut.getDate() - dateRange);
     const cs = cut.toISOString().split('T')[0];
-    return ts.filter(d => d.date >= cs);
+    const filtered = ts.filter(d => d.date >= cs);
+    // Auto-fallback to full range if selected window has no data (campaign finished months ago)
+    return filtered.length > 0 ? filtered : ts;
+  })();
+  // True if we fell back to full range because the selected window was empty
+  const tsRangeIsFallback = dateRange !== 'all' && (() => {
+    const cut = new Date(); cut.setDate(cut.getDate() - dateRange);
+    const cs = cut.toISOString().split('T')[0];
+    return ts.filter(d => d.date >= cs).length === 0 && ts.length > 0;
   })();
 
   // Email chart: latest 10 campaigns (eCamps already sorted by most recent)
@@ -524,7 +533,7 @@ export default function DashboardPage() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 3 }}>LinkedIn Activity</div>
-                          <div style={{ color: t.textMuted, fontSize: 12 }}>{filteredTs.length} active days</div>
+                          <div style={{ color: tsRangeIsFallback ? t.warnText : t.textMuted, fontSize: 12 }}>{tsRangeIsFallback ? `Showing all data — no activity in last ${dateRange}d` : `${filteredTs.length} active days`}</div>
                         </div>
                         <DateFilter v={dateRange} set={setDateRange} t={t} />
                       </div>
@@ -666,7 +675,7 @@ export default function DashboardPage() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 14.5, color: t.text, marginBottom: 3 }}>Daily Activity</div>
-                          <div style={{ color: t.textMuted, fontSize: 12 }}>{filteredTs.length} active days</div>
+                          <div style={{ color: tsRangeIsFallback ? t.warnText : t.textMuted, fontSize: 12 }}>{tsRangeIsFallback ? `Showing all data — no activity in last ${dateRange}d` : `${filteredTs.length} active days`}</div>
                         </div>
                         <DateFilter v={dateRange} set={setDateRange} t={t} />
                       </div>
