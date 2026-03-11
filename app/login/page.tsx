@@ -45,7 +45,7 @@ export default function LoginPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.png" alt="Founderled.io" style={{ width: 150, height: 'auto' }} />
             </div>
-            <p style={{ color: '#5a6e8c', fontSize: 13.5 }}>Campaign intelligence dashboard</p>
+            <p style={{ color: '#5a6e8c', fontSize: 13.5 }}>Founderled Cintel</p>
           </div>
 
           {/* Card */}
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
 
           <div style={{ textAlign: 'center', marginTop: 20, color: '#94a8c4', fontSize: 12 }}>
-            Founderled.io — Outbound Intelligence Platform
+            Founderled Cintel — Campaign Intelligence
           </div>
         </div>
       </div>
