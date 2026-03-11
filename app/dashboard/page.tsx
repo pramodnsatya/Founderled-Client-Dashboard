@@ -303,8 +303,15 @@ export default function DashboardPage() {
   const clientInfo = dashboard?.client;
   const ea = email?.aggregate || {};
   const la = linkedin?.aggregate || {};
-  const eCamps = email?.campaigns || [];
-  const lCamps = linkedin?.campaigns || [];
+  // Sort all campaigns by most recent first (startedAt / createdAt)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const byRecent = (a: any, b: any) => {
+    const da = new Date(a.startedAt || a.createdAt || 0).getTime();
+    const db = new Date(b.startedAt || b.createdAt || 0).getTime();
+    return db - da;
+  };
+  const eCamps = [...(email?.campaigns || [])].sort(byRecent);
+  const lCamps = [...(linkedin?.campaigns || [])].sort(byRecent);
   const ts: { date: string; connectionsSent: number; connectionsAccepted: number; messagesSent: number; messagesStarted: number; replies: number }[] = linkedin?.timeSeries || [];
   const eDebug = email?._debug || null;
   const lDebug = linkedin?._debug || null;
@@ -316,10 +323,8 @@ export default function DashboardPage() {
     return ts.filter(d => d.date >= cs);
   })();
 
-  // Email chart: top 10 campaigns by sent, for overview bar chart
-  const emailOverviewChart = [...eCamps]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .sort((a: any, b: any) => (b.sent || 0) - (a.sent || 0))
+  // Email chart: latest 10 campaigns (eCamps already sorted by most recent)
+  const emailOverviewChart = eCamps
     .slice(0, 10)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((c: any) => ({
@@ -328,10 +333,9 @@ export default function DashboardPage() {
       replies: c.replies || 0,
     }));
 
-  const emailChartFull = [...eCamps]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .sort((a: any, b: any) => (b.sent || 0) - (a.sent || 0))
-    .slice(0, 15)
+  // Email chart: latest 10 campaigns for the Email tab chart
+  const emailChartFull = eCamps
+    .slice(0, 10)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((c: any) => ({
       name: (c.name || '').length > 24 ? c.name.slice(0, 24) + '…' : c.name,
