@@ -215,6 +215,8 @@ export default function DashboardPage() {
   const [adminClients, setAdminClients] = useState<Client[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editClientForm, setEditClientForm] = useState({ name: '', emailBisonKey: '', emailBisonDomain: '', heyreachKey: '' });
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client', clientId: '' });
   const [newClient, setNewClient] = useState({ name: '', emailBisonKey: '', emailBisonDomain: 'send.founderled.io', heyreachKey: '' });
   const [emailPage, setEmailPage] = useState(1);
@@ -274,6 +276,17 @@ export default function DashboardPage() {
 
   const delUser = async (id: string) => {
     if (confirm('Delete this user?')) { await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE' }); loadAdmin(); }
+  };
+
+  const startEditClient = (c: Client) => {
+    setEditingClient(c);
+    setEditClientForm({ name: c.name, emailBisonKey: c.emailBisonKey, emailBisonDomain: c.emailBisonDomain, heyreachKey: c.heyreachKey });
+  };
+
+  const saveEditClient = async () => {
+    if (!editingClient) return;
+    const r = await fetch(`/api/admin/clients`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingClient.id, ...editClientForm }) });
+    if (r.ok) { setEditingClient(null); loadAdmin(); fetch(`/api/admin/clients`).then(r2 => r2.json()).then(d => Array.isArray(d) && setClients(d)); }
   };
 
   if (loading) return (
@@ -789,20 +802,73 @@ export default function DashboardPage() {
                         </div>
                       )}
 
-                      <div className="card">
+                      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                          <thead><tr>{['Name', 'Email Bison Domain', 'EB Key', 'HeyReach Key', 'Added'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
+                          <thead>
+                            <tr>
+                              {['Client', 'Domain', 'Email Bison Key', 'HeyReach Key', 'Added', ''].map(h => <TH key={h} t={t}>{h}</TH>)}
+                            </tr>
+                          </thead>
                           <tbody>
                             {adminClients.map((c: Client) => (
-                              <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
-                                <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600 }}>{c.name}</td>
-                                <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{c.emailBisonDomain}</td>
-                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.emailBisonKey ? c.emailBisonKey.slice(0, 14) + '...' : '—'}</td>
-                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.heyreachKey ? c.heyreachKey.slice(0, 14) + '...' : '—'}</td>
-                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
-                              </tr>
+                              <>
+                                <tr key={c.id} className="trow" style={{ borderBottom: editingClient?.id === c.id ? 'none' : `1px solid ${t.border}` }}>
+                                  <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600 }}>{c.name}</td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{c.emailBisonDomain}</td>
+                                  <td style={{ padding: '12px 14px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                                    {c.emailBisonKey
+                                      ? <span style={{ color: t.green }}>{c.emailBisonKey.slice(0, 14)}...</span>
+                                      : <span style={{ color: t.red }}>Not set</span>}
+                                  </td>
+                                  <td style={{ padding: '12px 14px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                                    {c.heyreachKey
+                                      ? <span style={{ color: t.green }}>{c.heyreachKey.slice(0, 14)}...</span>
+                                      : <span style={{ color: t.red, fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 11 }}>Not set</span>}
+                                  </td>
+                                  <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
+                                  <td style={{ padding: '12px 14px' }}>
+                                    {editingClient?.id === c.id
+                                      ? <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 12px', color: t.textMuted }} onClick={() => setEditingClient(null)}>Cancel</button>
+                                      : <button className="pill" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => startEditClient(c)}>Edit</button>
+                                    }
+                                  </td>
+                                </tr>
+                                {editingClient?.id === c.id && (
+                                  <tr key={`edit-${c.id}`} style={{ borderBottom: `1px solid ${t.border}` }}>
+                                    <td colSpan={6} style={{ padding: '0' }}>
+                                      <div style={{ padding: '18px 20px', background: t.bgHover, borderTop: `1px solid ${t.border}` }}>
+                                        <div style={{ fontWeight: 600, fontSize: 13, color: t.text, marginBottom: 14 }}>
+                                          Editing: <span style={{ color: t.blue }}>{c.name}</span>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                                          <div>
+                                            <div className="lbl">Client Name</div>
+                                            <input className="inp" value={editClientForm.name} onChange={e => setEditClientForm({ ...editClientForm, name: e.target.value })} />
+                                          </div>
+                                          <div>
+                                            <div className="lbl">Email Bison Domain</div>
+                                            <input className="inp" value={editClientForm.emailBisonDomain} onChange={e => setEditClientForm({ ...editClientForm, emailBisonDomain: e.target.value })} />
+                                          </div>
+                                          <div>
+                                            <div className="lbl">Email Bison API Key</div>
+                                            <input className="inp" value={editClientForm.emailBisonKey} onChange={e => setEditClientForm({ ...editClientForm, emailBisonKey: e.target.value })} placeholder="81|xxxx..." />
+                                          </div>
+                                          <div>
+                                            <div className="lbl">HeyReach API Key</div>
+                                            <input className="inp" value={editClientForm.heyreachKey} onChange={e => setEditClientForm({ ...editClientForm, heyreachKey: e.target.value })} placeholder="v3xyz..." />
+                                          </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                          <button className="btn-primary" onClick={saveEditClient} style={{ fontSize: 12, padding: '7px 16px' }}>Save Changes</button>
+                                          <button className="btn-ghost" onClick={() => setEditingClient(null)} style={{ fontSize: 12, padding: '7px 16px' }}>Cancel</button>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </>
                             ))}
-                            {adminClients.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: t.textDim }}>No clients yet</td></tr>}
+                            {adminClients.length === 0 && <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: t.textDim }}>No clients yet</td></tr>}
                           </tbody>
                         </table>
                       </div>
