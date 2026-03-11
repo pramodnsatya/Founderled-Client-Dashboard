@@ -1,17 +1,19 @@
-// Simple file-based database for user/client management
-// In production, replace with Postgres/Supabase
+// File-based database - persists to Railway Volume at /mnt/data (or ./data locally)
+// Railway Volume: attach a volume at /mnt/data in your Railway service settings
 
 import fs from 'fs';
 import path from 'path';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
+// Use Railway Volume if available, otherwise fall back to local ./data
+const DATA_DIR = fs.existsSync('/mnt/data') ? '/mnt/data' : path.join(process.cwd(), 'data');
+const DB_PATH = path.join(DATA_DIR, 'db.json');
 
 export interface Client {
   id: string;
   name: string;
   slug: string;
   emailBisonKey: string;
-  emailBisonDomain: string; // e.g., "send.founderled.io"
+  emailBisonDomain: string;
   heyreachKey: string;
   createdAt: string;
 }
@@ -21,7 +23,7 @@ export interface User {
   email: string;
   passwordHash: string;
   role: 'admin' | 'client';
-  clientId?: string; // only for client users
+  clientId?: string;
   name: string;
   createdAt: string;
 }
@@ -31,8 +33,25 @@ export interface DB {
   clients: Client[];
 }
 
-// Pre-seeded admin + all Founderled clients - auto-created on first boot
-// Password hash = "FounderLed2026!" (change via Admin panel after first login)
+// ─── Seed Users ────────────────────────────────────────────────────────────────
+// All users listed here are auto-restored on every boot if missing.
+// To add a new permanent user: add their entry here, then redeploy.
+// Password hashes generated with bcrypt cost=12.
+// Admin hash = "FounderLed2026!"
+const SEED_USERS: User[] = [
+  {
+    id: "admin-seed-001",
+    email: "admin@founderled.io",
+    passwordHash: "$2b$12$ODDVnnDjO7NMXkYXo3JQL.yBWswMlmc35UOKfVKFspMv2uXPxbAA2",
+    role: "admin",
+    name: "Admin",
+    createdAt: "2026-03-10T00:00:00Z",
+  },
+];
+
+// ─── Seed Clients ──────────────────────────────────────────────────────────────
+// All clients listed here are auto-restored on every boot if missing.
+// Edits made via the Admin UI are preserved (UI edits win over seed values).
 const SEED_CLIENTS: Client[] = [
   {
     id: "adaptional",
@@ -117,41 +136,43 @@ const SEED_CLIENTS: Client[] = [
   },
 ];
 
-const SEED_DATA: DB = {
-  users: [
-    {
-      id: "admin-seed-001",
-      email: "admin@founderled.io",
-      passwordHash: "$2b$12$ODDVnnDjO7NMXkYXo3JQL.yBWswMlmc35UOKfVKFspMv2uXPxbAA2",
-      role: "admin",
-      name: "Admin",
-      createdAt: "2026-03-10T00:00:00Z",
-    }
-  ],
-  clients: SEED_CLIENTS,
-};
-
+// ─── Merge logic ───────────────────────────────────────────────────────────────
+// Seeds are ADDITIVE only - they never overwrite data that exists in the file.
+// This means UI edits (e.g. adding a HeyReach key) are always preserved.
 function ensureDB(): DB {
-  const dir = path.dirname(DB_PATH);
+  const dir = DATA_DIR;
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(DB_PATH)) {
-    // First boot - write full seed so admin and all clients exist immediately
-    fs.writeFileSync(DB_PATH, JSON.stringify(SEED_DATA, null, 2));
-    return SEED_DATA;
-  }
-  const db: DB = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
 
-  // Ensure seed admin always exists (in case file was wiped)
-  if (!db.users || db.users.length === 0) {
-    db.users = SEED_DATA.users;
+  let db: DB = { users: [], clients: [] };
+
+  if (fs.existsSync(DB_PATH)) {
+    try {
+      db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    } catch {
+      console.error('[db] Failed to parse db.json, starting fresh');
+      db = { users: [], clients: [] };
+    }
   }
 
-  // Ensure every seed client exists (upsert by id, preserving any extra fields)
+  if (!db.users) db.users = [];
   if (!db.clients) db.clients = [];
+
   let changed = false;
+
+  // Merge seed users - only add if email not already present
+  for (const seedUser of SEED_USERS) {
+    const exists = db.users.find((u: User) => u.email === seedUser.email);
+    if (!exists) {
+      db.users.push(seedUser);
+      changed = true;
+    }
+  }
+
+  // Merge seed clients - only add if id not already present
+  // Does NOT overwrite existing entries so UI edits (e.g. HeyReach keys) survive
   for (const seedClient of SEED_CLIENTS) {
-    const existing = db.clients.find((c: Client) => c.id === seedClient.id);
-    if (!existing) {
+    const exists = db.clients.find((c: Client) => c.id === seedClient.id);
+    if (!exists) {
       db.clients.push(seedClient);
       changed = true;
     }
@@ -169,5 +190,11 @@ export function getDB(): DB {
 }
 
 export function saveDB(db: DB): void {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+}
+
+// Utility: export current db path for diagnostics
+export function getDBPath(): string {
+  return DB_PATH;
 }
