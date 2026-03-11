@@ -199,10 +199,15 @@ export async function GET(req: NextRequest) {
     // Use overallStats when it has real data
     linkedinAgg.totalConnectionsSent     = os.connectionsSent     || 0;
     linkedinAgg.totalConnectionsAccepted = os.connectionsAccepted || 0;
-    linkedinAgg.totalMessagesSent        = os.messagesSent        || 0;
-    linkedinAgg.totalReplies             = os.totalMessageReplies || 0;
+    // Use totalMessageStarted (conversations initiated) as the canonical "Messages Sent" metric.
+    // messagesSent is near-zero in HeyReach's model; totalMessageStarted is what's actually sent.
+    const msgStarted = os.totalMessageStarted || 0;
+    const msgReplies = os.totalMessageReplies || 0;
+    linkedinAgg.totalMessagesSent        = msgStarted;
+    linkedinAgg.totalReplies             = msgReplies;
     linkedinAgg.acceptanceRate = parseFloat(((os.connectionAcceptanceRate || 0) * 100).toFixed(1));
-    linkedinAgg.replyRate      = parseFloat(((os.messageReplyRate         || 0) * 100).toFixed(1));
+    // Calculate reply rate from totalMessageStarted so the % is consistent with the counts shown
+    linkedinAgg.replyRate = msgStarted > 0 ? parseFloat(((msgReplies / msgStarted) * 100).toFixed(1)) : 0;
     console.log(`[HeyReach] Using overallStats: sent=${os.connectionsSent}, accepted=${os.connectionsAccepted}`);
   } else if (daySent > 0 || dayAccepted > 0) {
     // Fall back to byDayStats sum
@@ -266,10 +271,8 @@ export async function GET(req: NextRequest) {
         .sort((a, b) => a.date.localeCompare(b.date))
     : [];
 
-  // Fix: use totalMessageStarted for "Messages Sent" — more accurate than messagesSent which only counts post-connection
-  if (linkedinAgg.totalMessagesSent === 0 && os?.totalMessageStarted > 0) {
-    linkedinAgg.totalMessagesSent = os.totalMessageStarted;
-  } else if (linkedinAgg.totalMessagesSent === 0) {
+  // If overallStats had no data (fell through to byDayStats path), use time series sum as fallback
+  if (linkedinAgg.totalMessagesSent === 0) {
     linkedinAgg.totalMessagesSent = linkedinTimeSeries.reduce((s, d) => s + d.messagesStarted, 0);
   }
 
