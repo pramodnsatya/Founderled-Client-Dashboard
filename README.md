@@ -9,7 +9,6 @@ npm install
 node scripts/seed-admin.js
 npm run dev   # localhost:3000
 ```
-Admin login: `admin@founderleddash.com` / `admin123`
 
 ## Deploy to Vercel
 1. Push to GitHub
