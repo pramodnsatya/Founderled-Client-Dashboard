@@ -2,23 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDB } from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 
-// Try multiple likely endpoint patterns for the Ordinal API
-const ORDINAL_BASE_CANDIDATES = [
-  'https://api.tryordinal.com',
-  'https://api.ordinalai.com',
-  'https://app.tryordinal.com/api',
-];
+// Ordinal API — confirmed base from docs.tryordinal.com/api/introduction
+const ORDINAL_BASE = 'https://app.tryordinal.com/api/v1';
 
+// Endpoint candidates in priority order (posts with analytics embedded first)
 const POST_PATH_CANDIDATES = [
-  '/v1/posts',
-  '/v1/analytics/posts',
   '/posts',
-  '/analytics',
-  '/v1/content',
-  '/content/posts',
+  '/analytics/posts',
+  '/posts?include=analytics',
+  '/posts?includeAnalytics=true',
 ];
 
-async function ordinalFetch(key: string, path: string, base: string) {
+// Analytics endpoint candidates (separate from posts)
+const ANALYTICS_PATH_CANDIDATES = [
+  '/analytics',
+  '/analytics/posts',
+  '/analytics/content',
+];
+
+async function ordinalFetch(key: string, path: string, base: string = ORDINAL_BASE) {
   const res = await fetch(`${base}${path}`, {
     headers: {
       'Authorization': `Bearer ${key}`,
@@ -31,21 +33,42 @@ async function ordinalFetch(key: string, path: string, base: string) {
 }
 
 async function discoverAndFetch(key: string): Promise<{ posts: OrdinalPost[]; source: string; raw?: unknown }> {
-  for (const base of ORDINAL_BASE_CANDIDATES) {
-    for (const path of POST_PATH_CANDIDATES) {
-      try {
-        const res = await ordinalFetch(key, path, base);
-        if (res.ok) {
-          const data = await res.json();
-          const posts = normalizeResponse(data);
-          if (posts) return { posts, source: `${base}${path}`, raw: data };
-        }
-      } catch {
-        // continue trying
+  const errors: string[] = [];
+
+  // Try posts endpoints (may include analytics inline)
+  for (const path of POST_PATH_CANDIDATES) {
+    try {
+      const res = await ordinalFetch(key, path, ORDINAL_BASE);
+      if (res.ok) {
+        const data = await res.json();
+        const posts = normalizeResponse(data);
+        if (posts && posts.length > 0) return { posts, source: `${ORDINAL_BASE}${path}`, raw: data };
+        if (posts) return { posts, source: `${ORDINAL_BASE}${path}`, raw: data }; // empty but valid
+      } else {
+        errors.push(`${path} → ${res.status}`);
       }
+    } catch (e) {
+      errors.push(`${path} → ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  throw new Error('Could not reach Ordinal API — all endpoint candidates failed');
+
+  // Try analytics endpoints as fallback
+  for (const path of ANALYTICS_PATH_CANDIDATES) {
+    try {
+      const res = await ordinalFetch(key, path, ORDINAL_BASE);
+      if (res.ok) {
+        const data = await res.json();
+        const posts = normalizeResponse(data);
+        if (posts !== null) return { posts, source: `${ORDINAL_BASE}${path}`, raw: data };
+      } else {
+        errors.push(`${path} → ${res.status}`);
+      }
+    } catch (e) {
+      errors.push(`${path} → ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  throw new Error(`Ordinal API: tried all endpoints. Errors: ${errors.join(', ')}`);
 }
 
 interface OrdinalPost {
