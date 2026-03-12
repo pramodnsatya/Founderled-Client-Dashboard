@@ -482,7 +482,6 @@ export default function DashboardPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 24 }}>
                     <StatCard label="Emails Sent"      value={(ea.totalSent || 0).toLocaleString()}     accent="blue"  cls="d1" t={t} />
                     <StatCard label="Replies"          value={(ea.totalReplies || 0).toLocaleString()}   sub={`${ea.replyRate || 0}% rate`}   accent="green" cls="d2" t={t} />
-                    <StatCard label="Bounces"          value={(ea.totalBounces || 0).toLocaleString()}   sub={`${ea.bounceRate || 0}% rate`}  accent="red"   cls="d3" t={t} />
                     <StatCard label="Active Campaigns" value={ea.activeCampaigns || 0}                   accent="blue"  cls="d4" t={t} />
                   </div>
 
@@ -569,7 +568,6 @@ export default function DashboardPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 14, marginBottom: 28 }}>
                     <StatCard label="Total Sent"      value={(ea.totalSent || 0).toLocaleString()}   accent="blue"  cls="d1" t={t} />
                     <StatCard label="Reply Rate"      value={`${ea.replyRate || 0}%`}               sub={`${(ea.totalReplies || 0).toLocaleString()} replies`}  accent="green" cls="d2" t={t} />
-                    <StatCard label="Bounce Rate"     value={`${ea.bounceRate || 0}%`}              sub={`${(ea.totalBounces || 0).toLocaleString()} bounces`}  accent="red"   cls="d3" t={t} />
                     <StatCard label="Total Campaigns" value={ea.totalCampaigns || 0}                 accent="blue"  cls="d4" t={t} />
                     <StatCard label="Active"          value={ea.activeCampaigns || 0}                accent={ea.activeCampaigns > 0 ? 'green' : 'blue'} cls="d5" t={t} />
                   </div>
@@ -622,7 +620,7 @@ export default function DashboardPage() {
                         </div>
                         <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead><tr>{['Campaign', 'Status', 'Sent', 'Replies', 'Reply %', 'Bounces', 'Bounce %'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
+                            <thead><tr>{['Campaign', 'Status', 'Sent', 'Replies', 'Reply %'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
                             <tbody>
                               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {(paged as any[]).map((c: any) => (
@@ -632,8 +630,6 @@ export default function DashboardPage() {
                                   <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.sent || 0).toLocaleString()}</td>
                                   <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.replies || 0).toLocaleString()}</td>
                                   <td style={{ padding: '12px 14px' }}><span style={{ color: t.blue, fontWeight: 700, fontSize: 12 }}>{c.replyRate}%</span></td>
-                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.bounces || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px' }}><span style={{ color: parseFloat(c.bounceRate) > 5 ? t.red : t.textMuted, fontSize: 12 }}>{c.bounceRate}%</span></td>
                                 </tr>
                               ))}
                             </tbody>

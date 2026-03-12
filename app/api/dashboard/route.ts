@@ -122,8 +122,8 @@ export async function GET(req: NextRequest) {
 
   // ── EMAIL BISON ────────────────────────────────────────────────────────────
   let emailAgg = {
-    totalSent: 0, totalReplies: 0, totalBounces: 0,
-    replyRate: 0, bounceRate: 0,
+    totalSent: 0, totalReplies: 0,
+    replyRate: 0,
     activeCampaigns: 0, totalCampaigns: 0,
   };
   const processedEmailCampaigns: object[] = [];
@@ -141,11 +141,9 @@ export async function GET(req: NextRequest) {
 
       const sent    = get('emails_sent', 'sent') || (campaign.total_sent as number) || 0;
       const replies = get('unique_replies', 'replies') || (campaign.replies as number) || 0;
-      const bounces = get('bounced', 'bounces') || (campaign.bounces as number) || 0;
 
       emailAgg.totalSent    += sent;
       emailAgg.totalReplies += replies;
-      emailAgg.totalBounces += bounces;
 
       const statusRaw = ((campaign.status as string) || '').toLowerCase();
       if (statusRaw === 'draft') continue; // exclude drafts from charts and tables
@@ -153,16 +151,14 @@ export async function GET(req: NextRequest) {
 
       processedEmailCampaigns.push({
         id: campaign.id, name: campaign.name, status: campaign.status,
-        sent, replies, bounces,
+        sent, replies,
         replyRate:  sent > 0 ? ((replies / sent) * 100).toFixed(1) : '0',
-        bounceRate: sent > 0 ? ((bounces / sent) * 100).toFixed(1) : '0',
         startedAt: campaign.created_at || campaign.started_at,
       });
     }
     const d = emailAgg.totalSent;
     if (d > 0) {
       emailAgg.replyRate  = parseFloat(((emailAgg.totalReplies / d) * 100).toFixed(1));
-      emailAgg.bounceRate = parseFloat(((emailAgg.totalBounces / d) * 100).toFixed(1));
     }
   }
 
