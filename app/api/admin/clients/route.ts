@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json();
-  const { name, emailBisonKey, emailBisonDomain, heyreachKey } = body;
+  const { name, emailBisonKey, emailBisonDomain, heyreachKey, ordinalKey } = body;
   if (!name || !emailBisonKey || !heyreachKey) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   const db = getDB();
   const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     emailBisonKey,
     emailBisonDomain: emailBisonDomain || 'dedi.emailbison.com',
     heyreachKey,
+    ...(ordinalKey ? { ordinalKey } : {}),
     createdAt: new Date().toISOString(),
   };
   db.clients.push(newClient);

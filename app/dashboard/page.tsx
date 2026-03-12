@@ -7,7 +7,9 @@ import {
 } from 'recharts';
 
 interface User { id: string; email: string; role: 'admin' | 'client'; clientId?: string; name: string; }
-interface Client { id: string; name: string; slug: string; emailBisonKey: string; heyreachKey: string; emailBisonDomain: string; createdAt: string; }
+interface Client { id: string; name: string; slug: string; emailBisonKey: string; heyreachKey: string; emailBisonDomain: string; ordinalKey?: string; createdAt: string; }
+interface OrdinalPost { id: string; content: string; publishedAt: string; impressions: number; likes: number; comments: number; shares: number; clicks: number; engagementRate: number; url?: string; type?: string; account?: string; }
+interface OrdinalTotals { impressions: number; likes: number; comments: number; shares: number; clicks: number; avgEngagement: number; totalPosts: number; }
 interface DashboardUser { id: string; email: string; role: string; clientId?: string; name: string; }
 
 // ── Theme tokens ──────────────────────────────────────────────────────────────
@@ -209,14 +211,16 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
   const [dashLoading, setDashLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'email' | 'linkedin' | 'admin'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'email' | 'linkedin' | 'ordinal' | 'admin'>('overview');
   const [adminTab, setAdminTab] = useState<'users' | 'clients'>('users');
   const [adminUsers, setAdminUsers] = useState<DashboardUser[]>([]);
   const [adminClients, setAdminClients] = useState<Client[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [editClientForm, setEditClientForm] = useState({ name: '', emailBisonKey: '', emailBisonDomain: '', heyreachKey: '' });
+  const [editClientForm, setEditClientForm] = useState({ name: '', emailBisonKey: '', emailBisonDomain: '', heyreachKey: '', ordinalKey: '' });
+  const [ordinalData, setOrdinalData] = useState<{ posts: OrdinalPost[]; totals: OrdinalTotals | null; error?: string } | null>(null);
+  const [ordinalLoading, setOrdinalLoading] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client', clientId: '' });
   const [newClient, setNewClient] = useState({ name: '', emailBisonKey: '', emailBisonDomain: 'send.founderled.io', heyreachKey: '' });
   const [emailPage, setEmailPage] = useState(1);
@@ -259,6 +263,20 @@ export default function DashboardPage() {
 
   useEffect(() => { if (activeTab === 'admin') loadAdmin(); }, [activeTab, loadAdmin]);
 
+  // Load Ordinal data when switching to ordinal tab or changing client
+  useEffect(() => {
+    if (activeTab !== 'ordinal') return;
+    const cid = selectedClientId || (user?.role === 'client' ? user?.clientId : '');
+    if (!cid) return;
+    setOrdinalLoading(true);
+    setOrdinalData(null);
+    fetch(`/api/ordinal?clientId=${cid}`)
+      .then(r => r.json())
+      .then(d => setOrdinalData(d))
+      .catch(e => setOrdinalData({ posts: [], totals: null, error: String(e) }))
+      .finally(() => setOrdinalLoading(false));
+  }, [activeTab, selectedClientId, user]);
+
   const logout = async () => { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); };
 
   const createUser = async () => {
@@ -280,7 +298,7 @@ export default function DashboardPage() {
 
   const startEditClient = (c: Client) => {
     setEditingClient(c);
-    setEditClientForm({ name: c.name, emailBisonKey: c.emailBisonKey, emailBisonDomain: c.emailBisonDomain, heyreachKey: c.heyreachKey });
+    setEditClientForm({ name: c.name, emailBisonKey: c.emailBisonKey, emailBisonDomain: c.emailBisonDomain, heyreachKey: c.heyreachKey || '', ordinalKey: c.ordinalKey || '' });
   };
 
   const saveEditClient = async () => {
@@ -316,6 +334,7 @@ export default function DashboardPage() {
   const eDebug = email?._debug || null;
   const lDebug = linkedin?._debug || null;
   const clientName = clients.find(c => c.id === selectedClientId)?.name || clientInfo?.name || 'Client';
+  const currentClient = clients.find(c => c.id === selectedClientId) || null;
 
   const filteredTs = (() => {
     if (dateRange === 'all') return ts;
@@ -359,6 +378,7 @@ export default function DashboardPage() {
     { id: 'overview', label: 'Overview',  icon: '▦' },
     { id: 'email',    label: 'Email',     icon: '✉' },
     { id: 'linkedin', label: 'LinkedIn',  icon: 'in', mono: true },
+    ...(currentClient?.ordinalKey ? [{ id: 'ordinal', label: 'Ordinal', icon: '◈' }] : []),
     ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: '⚙' }] : []),
   ];
 
@@ -440,6 +460,7 @@ export default function DashboardPage() {
                 {activeTab === 'overview' && 'Performance Overview'}
                 {activeTab === 'email' && 'Email Campaigns'}
                 {activeTab === 'linkedin' && 'LinkedIn Outreach'}
+                {activeTab === 'ordinal' && 'LinkedIn Content (Ordinal)'}
                 {activeTab === 'admin' && 'Admin Panel'}
               </h1>
             </div>
@@ -719,6 +740,90 @@ export default function DashboardPage() {
                 </div>
               )}
 
+
+              {/* ══ ORDINAL ══════════════════════════════════ */}
+              {activeTab === 'ordinal' && (
+                <div className="fu">
+                  {ordinalLoading && (
+                    <div style={{ color: t.textMuted, textAlign: 'center', padding: 60, fontSize: 14 }}>
+                      Loading Ordinal data…
+                    </div>
+                  )}
+                  {!ordinalLoading && ordinalData?.error && (
+                    <div style={{ background: t.warnBg, border: `1px solid ${t.warnBorder}`, borderRadius: 10, padding: '14px 18px', marginBottom: 24, fontSize: 13, color: t.warnText }}>
+                      <strong>Ordinal API notice</strong> — {ordinalData.error}
+                    </div>
+                  )}
+                  {!ordinalLoading && ordinalData && !ordinalData.error && (
+                    <>
+                      {/* Stat Cards */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px,1fr))', gap: 14, marginBottom: 28 }}>
+                        <StatCard label="Total Posts"      value={(ordinalData.totals?.totalPosts || 0).toLocaleString()}            accent="blue"    cls="d1" t={t} />
+                        <StatCard label="Impressions"      value={(ordinalData.totals?.impressions || 0).toLocaleString()}            accent="blue"    cls="d2" t={t} />
+                        <StatCard label="Likes"            value={(ordinalData.totals?.likes || 0).toLocaleString()}                  accent="green"   cls="d3" t={t} />
+                        <StatCard label="Comments"         value={(ordinalData.totals?.comments || 0).toLocaleString()}               accent="linkedin" cls="d4" t={t} />
+                        <StatCard label="Shares"           value={(ordinalData.totals?.shares || 0).toLocaleString()}                 accent="green"   cls="d1" t={t} />
+                        <StatCard label="Clicks"           value={(ordinalData.totals?.clicks || 0).toLocaleString()}                 accent="blue"    cls="d2" t={t} />
+                        <StatCard label="Avg Engagement"   value={`${(ordinalData.totals?.avgEngagement || 0).toFixed(1)}%`}          accent="linkedin" cls="d3" t={t} />
+                      </div>
+
+                      {/* Posts Table */}
+                      <div style={{ background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{ padding: '18px 22px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+                            LinkedIn Posts <span style={{ color: t.textMuted, fontWeight: 400, fontSize: 13 }}>({ordinalData.posts.length})</span>
+                          </div>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ background: t.bgHover }}>
+                                {['Post', 'Date', 'Impressions', 'Likes', 'Comments', 'Shares', 'Clicks', 'Engagement %'].map(h => (
+                                  <TH key={h} t={t}>{h}</TH>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ordinalData.posts.length === 0 && (
+                                <tr><td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: t.textMuted, fontSize: 13 }}>No posts found</td></tr>
+                              )}
+                              {ordinalData.posts.map((p, i) => (
+                                <tr key={p.id} style={{ borderTop: `1px solid ${t.border}`, background: i % 2 === 0 ? 'transparent' : t.bgHover + '60' }}>
+                                  <td style={{ padding: '12px 14px', maxWidth: 300, color: t.text, fontSize: 12 }}>
+                                    <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.45 }}>
+                                      {p.content || <span style={{ color: t.textDim, fontStyle: 'italic' }}>No text</span>}
+                                    </div>
+                                    {p.url && (
+                                      <a href={p.url} target="_blank" rel="noopener noreferrer"
+                                        style={{ display: 'block', marginTop: 4, fontSize: 11, color: t.blue, opacity: 0.8 }}>
+                                        View post ↗
+                                      </a>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, whiteSpace: 'nowrap' }}>
+                                    {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString() : '—'}
+                                  </td>
+                                  <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600, fontSize: 12 }}>{p.impressions.toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.green, fontWeight: 600, fontSize: 12 }}>{p.likes.toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.linkedin, fontSize: 12 }}>{p.comments.toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{p.shares.toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.blue, fontSize: 12 }}>{p.clicks.toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px' }}>
+                                    <span style={{ color: p.engagementRate >= 3 ? t.green : t.textMuted, fontWeight: 600, fontSize: 12 }}>
+                                      {p.engagementRate.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* ══ ADMIN ══════════════════════════════════ */}
               {activeTab === 'admin' && user?.role === 'admin' && (
                 <div className="fu">
@@ -865,6 +970,10 @@ export default function DashboardPage() {
                                           <div>
                                             <div className="lbl">HeyReach API Key</div>
                                             <input className="inp" value={editClientForm.heyreachKey} onChange={e => setEditClientForm({ ...editClientForm, heyreachKey: e.target.value })} placeholder="v3xyz..." />
+                                            </div>
+                                            <div>
+                                              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.textMuted, marginBottom: 4 }}>Ordinal API Key</label>
+                                              <input className="inp" value={editClientForm.ordinalKey} onChange={e => setEditClientForm({ ...editClientForm, ordinalKey: e.target.value })} placeholder="ord_xxxx..." />
                                           </div>
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>

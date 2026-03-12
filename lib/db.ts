@@ -15,6 +15,7 @@ export interface Client {
   emailBisonKey: string;
   emailBisonDomain: string;
   heyreachKey: string;
+  ordinalKey?: string;
   createdAt: string;
 }
 
@@ -60,6 +61,7 @@ const SEED_CLIENTS: Client[] = [
     emailBisonKey: "81|wV2V42VWB2RryO8GXu0ySMhbpoxkLFSF3bqX3yE3dc7cbd40",
     emailBisonDomain: "send.founderled.io",
     heyreachKey: "v3yzUdxWhBklrqQG8+JsFaV7OOYBETWGbLB8wJCQavc=",
+    ordinalKey: "ord_J8Dj3KJqtFjGijp6LSQ9BJ",
     createdAt: "2026-03-10T00:00:00Z",
   },
   {
