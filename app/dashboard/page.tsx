@@ -63,7 +63,7 @@ function makeTheme(dark: boolean) {
 
 function buildCss(t: ReturnType<typeof makeTheme>, dark: boolean) {
   return `
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background:${t.bg};color:${t.text};font-family:'Sora',sans-serif;-webkit-font-smoothing:antialiased}
     ::-webkit-scrollbar{width:4px;height:4px}
@@ -142,9 +142,9 @@ function StatCard({ label, value, sub, accent, cls = '', t }: {
         <div style={{ width: 34, height: 34, borderRadius: 9, background: ab, border: `1px solid ${ac}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: ac, opacity: .8 }} />
         </div>
-        {sub && <span style={{ color: t.textMuted, fontSize: 11, background: t.bgHover, padding: '2px 8px', borderRadius: 6, fontFamily: "'JetBrains Mono', monospace", border: `1px solid ${t.border}` }}>{sub}</span>}
+        {sub && <span style={{ color: t.textMuted, fontSize: 11, background: t.bgHover, padding: '2px 8px', borderRadius: 6, border: `1px solid ${t.border}` }}>{sub}</span>}
       </div>
-      <div style={{ fontSize: 30, fontWeight: 700, color: t.text, lineHeight: 1, marginBottom: 6, letterSpacing: '-.03em', fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+      <div style={{ fontSize: 30, fontWeight: 700, color: t.text, lineHeight: 1, marginBottom: 6, letterSpacing: '-.03em' }}>{value}</div>
       <div style={{ color: t.textMuted, fontSize: 12.5, fontWeight: 500 }}>{label}</div>
     </div>
   );
@@ -155,12 +155,12 @@ function ChartTip({ active, payload, label, t }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: t.bgCard, border: `1px solid ${t.borderHi}`, borderRadius: 10, padding: '11px 15px', fontSize: 12, boxShadow: t.shadow }}>
-      <div style={{ color: t.textMuted, marginBottom: 8, fontWeight: 500, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>{label}</div>
+      <div style={{ color: t.textMuted, marginBottom: 8, fontWeight: 500, fontSize: 10 }}>{label}</div>
       {payload.map((p: { name: string; value: number; color: string }, i: number) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
           <span style={{ color: t.textMuted }}>{p.name}:</span>
-          <span style={{ color: t.text, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{p.value}</span>
+          <span style={{ color: t.text, fontWeight: 700 }}>{p.value}</span>
         </div>
       ))}
     </div>
@@ -403,7 +403,7 @@ export default function DashboardPage() {
                   border: `1px solid ${activeTab === item.id ? t.blue + '30' : 'transparent'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: item.mono ? 10 : 12, fontWeight: 700, flexShrink: 0, transition: 'all .15s',
-                  fontFamily: item.mono ? "'JetBrains Mono', monospace" : 'inherit',
+                  fontFamily: 'inherit',
                 }}>
                   {item.icon}
                 </span>
@@ -488,7 +488,7 @@ export default function DashboardPage() {
 
                   {eDebug?.error && (
                     <div style={{ background: t.warnBg, border: `1px solid ${t.warnBorder}`, borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: t.warnText }}>
-                      <strong>Email Bison API notice</strong> — error <code style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }}>{eDebug.error}</code>. Check your API key and domain in Admin Settings.
+                      <strong>Email Bison API notice</strong> — error <code style={{ fontSize: 11.5 }}>{eDebug.error}</code>. Check your API key and domain in Admin Settings.
                     </div>
                   )}
 
@@ -576,7 +576,7 @@ export default function DashboardPage() {
 
                   {eDebug?.error && (
                     <div style={{ background: t.warnBg, border: `1px solid ${t.warnBorder}`, borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: t.warnText }}>
-                      <strong>Email Bison API issue</strong> — error <code style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }}>{eDebug.error}</code>.
+                      <strong>Email Bison API issue</strong> — error <code style={{ fontSize: 11.5 }}>{eDebug.error}</code>.
                       {eDebug.rawKeys && <div style={{ marginTop: 4, color: t.textMuted, fontSize: 12 }}>Response keys: {eDebug.rawKeys.join(', ')}</div>}
                     </div>
                   )}
@@ -615,7 +615,7 @@ export default function DashboardPage() {
                           {totalPages > 1 && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <button className="pill" onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} style={{ padding: '4px 10px' }}>‹</button>
-                              <span style={{ color: t.textMuted, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace" }}>{emailPage} / {totalPages}</span>
+                              <span style={{ color: t.textMuted, fontSize: 11.5 }}>{emailPage} / {totalPages}</span>
                               <button className="pill" onClick={() => setEmailPage(p => Math.min(totalPages, p + 1))} disabled={emailPage === totalPages} style={{ padding: '4px 10px' }}>›</button>
                             </div>
                           )}
@@ -629,11 +629,11 @@ export default function DashboardPage() {
                                 <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
                                   <td style={{ padding: '12px 14px', color: t.text, fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
                                   <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} t={t} /></td>
-                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.sent || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.replies || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px' }}><span style={{ color: t.blue, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{c.replyRate}%</span></td>
-                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.bounces || 0).toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px' }}><span style={{ color: parseFloat(c.bounceRate) > 5 ? t.red : t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{c.bounceRate}%</span></td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.sent || 0).toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.replies || 0).toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px' }}><span style={{ color: t.blue, fontWeight: 700, fontSize: 12 }}>{c.replyRate}%</span></td>
+                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.bounces || 0).toLocaleString()}</td>
+                                  <td style={{ padding: '12px 14px' }}><span style={{ color: parseFloat(c.bounceRate) > 5 ? t.red : t.textMuted, fontSize: 12 }}>{c.bounceRate}%</span></td>
                                 </tr>
                               ))}
                             </tbody>
@@ -707,12 +707,12 @@ export default function DashboardPage() {
                               <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
                                 <td style={{ padding: '12px 14px', color: t.text, fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
                                 <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} t={t} /></td>
-                                <td style={{ padding: '12px 14px', color: t.textMuted, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.total || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: t.linkedin, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{(c.inProgress || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: t.green, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{(c.finished || 0).toLocaleString()}</td>
-                                <td style={{ padding: '12px 14px', color: c.failed > 0 ? t.red : t.textDim, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{(c.failed || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.total || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: t.linkedin, fontSize: 12, fontWeight: 600 }}>{(c.inProgress || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: t.green, fontSize: 12, fontWeight: 600 }}>{(c.finished || 0).toLocaleString()}</td>
+                                <td style={{ padding: '12px 14px', color: c.failed > 0 ? t.red : t.textDim, fontSize: 12 }}>{(c.failed || 0).toLocaleString()}</td>
                                 <td style={{ padding: '12px 14px', color: t.textMuted, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{c.listName || '—'}</td>
-                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{c.startedAt ? new Date(c.startedAt).toLocaleDateString() : '—'}</td>
+                                <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11 }}>{c.startedAt ? new Date(c.startedAt).toLocaleDateString() : '—'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -828,17 +828,17 @@ export default function DashboardPage() {
                                 <tr key={c.id} className="trow" style={{ borderBottom: editingClient?.id === c.id ? 'none' : `1px solid ${t.border}` }}>
                                   <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600 }}>{c.name}</td>
                                   <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{c.emailBisonDomain}</td>
-                                  <td style={{ padding: '12px 14px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                                  <td style={{ padding: '12px 14px', fontSize: 11 }}>
                                     {c.emailBisonKey
                                       ? <span style={{ color: t.green }}>{c.emailBisonKey.slice(0, 14)}...</span>
                                       : <span style={{ color: t.red }}>Not set</span>}
                                   </td>
-                                  <td style={{ padding: '12px 14px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                                  <td style={{ padding: '12px 14px', fontSize: 11 }}>
                                     {c.heyreachKey
                                       ? <span style={{ color: t.green }}>{c.heyreachKey.slice(0, 14)}...</span>
                                       : <span style={{ color: t.red, fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 11 }}>Not set</span>}
                                   </td>
-                                  <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
+                                  <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
                                   <td style={{ padding: '12px 14px' }}>
                                     {editingClient?.id === c.id
                                       ? <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 12px', color: t.textMuted }} onClick={() => setEditingClient(null)}>Cancel</button>
