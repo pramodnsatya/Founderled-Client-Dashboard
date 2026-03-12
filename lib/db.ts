@@ -48,6 +48,15 @@ const SEED_USERS: User[] = [
     name: "Admin",
     createdAt: "2026-03-10T00:00:00Z",
   },
+  {
+    id: "client-adaptional-001",
+    email: "suril@adaptional.ai",
+    passwordHash: "$2b$12$zQsZy4TO2Yb98qtAJt.DqOAMGFQNRtQPC9TTJu3on2IWvg3kCnx/W",
+    role: "client",
+    clientId: "adaptional",
+    name: "Suril (Adaptional)",
+    createdAt: "2026-03-10T00:00:00Z",
+  },
 ];
 
 // ─── Seed Clients ──────────────────────────────────────────────────────────────
