@@ -179,12 +179,15 @@ function ensureDB(): DB {
     }
   }
 
-  // Merge seed clients - only add if id not already present
-  // Does NOT overwrite existing entries so UI edits (e.g. HeyReach keys) survive
+  // Merge seed clients - add if missing, or patch ordinalKey if newly added to seed
+  // Does NOT overwrite keys/names so UI edits survive
   for (const seedClient of SEED_CLIENTS) {
-    const exists = db.clients.find((c: Client) => c.id === seedClient.id);
-    if (!exists) {
+    const existing = db.clients.find((c: Client) => c.id === seedClient.id);
+    if (!existing) {
       db.clients.push(seedClient);
+      changed = true;
+    } else if (seedClient.ordinalKey && !existing.ordinalKey) {
+      existing.ordinalKey = seedClient.ordinalKey;
       changed = true;
     }
   }
