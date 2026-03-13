@@ -8,8 +8,8 @@ import {
 
 interface User { id: string; email: string; role: 'admin' | 'client'; clientId?: string; name: string; }
 interface Client { id: string; name: string; slug: string; emailBisonKey: string; heyreachKey: string; emailBisonDomain: string; ordinalKey?: string; createdAt: string; }
-interface OrdinalPost { id: string; content: string; publishedAt: string; impressions: number; likes: number; comments: number; shares: number; clicks: number; engagementRate: number; url?: string; type?: string; account?: string; }
-interface OrdinalTotals { impressions: number; likes: number; comments: number; shares: number; clicks: number; avgEngagement: number; totalPosts: number; }
+interface OrdinalPost { id: string; title: string; content: string; status: string; publishDate: string; publishAt: string | null; author: string; url: string; channels: string[]; hasAssets: boolean; }
+interface OrdinalTotals { totalPosts: number; posted: number; scheduled: number; drafts: number; }
 interface DashboardUser { id: string; email: string; role: string; clientId?: string; name: string; }
 
 // ── Theme tokens ──────────────────────────────────────────────────────────────
@@ -747,7 +747,7 @@ export default function DashboardPage() {
                 <div className="fu">
                   {ordinalLoading && (
                     <div style={{ color: t.textMuted, textAlign: 'center', padding: 60, fontSize: 14 }}>
-                      Loading Ordinal data…
+                      Loading content calendar…
                     </div>
                   )}
                   {!ordinalLoading && ordinalData?.error && (
@@ -755,73 +755,89 @@ export default function DashboardPage() {
                       <strong>Ordinal API notice</strong> — {ordinalData.error}
                     </div>
                   )}
-                  {!ordinalLoading && ordinalData && !ordinalData.error && (
-                    <>
-                      {/* Stat Cards */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px,1fr))', gap: 14, marginBottom: 28 }}>
-                        <StatCard label="Total Posts"      value={(ordinalData.totals?.totalPosts || 0).toLocaleString()}            accent="blue"    cls="d1" t={t} />
-                        <StatCard label="Impressions"      value={(ordinalData.totals?.impressions || 0).toLocaleString()}            accent="blue"    cls="d2" t={t} />
-                        <StatCard label="Likes"            value={(ordinalData.totals?.likes || 0).toLocaleString()}                  accent="green"   cls="d3" t={t} />
-                        <StatCard label="Comments"         value={(ordinalData.totals?.comments || 0).toLocaleString()}               accent="linkedin" cls="d4" t={t} />
-                        <StatCard label="Shares"           value={(ordinalData.totals?.shares || 0).toLocaleString()}                 accent="green"   cls="d1" t={t} />
-                        <StatCard label="Clicks"           value={(ordinalData.totals?.clicks || 0).toLocaleString()}                 accent="blue"    cls="d2" t={t} />
-                        <StatCard label="Avg Engagement"   value={`${(ordinalData.totals?.avgEngagement || 0).toFixed(1)}%`}          accent="linkedin" cls="d3" t={t} />
-                      </div>
+                  {!ordinalLoading && ordinalData && !ordinalData.error && (() => {
+                    const statusColor = (s: string) => {
+                      if (s === 'Posted') return { bg: t.green + '22', text: t.green, label: 'Posted' };
+                      if (s === 'Finalized') return { bg: t.blue + '22', text: t.blue, label: 'Ready' };
+                      return { bg: t.textMuted + '22', text: t.textMuted, label: 'Draft' };
+                    };
+                    return (
+                      <>
+                        {/* Stat Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px,1fr))', gap: 14, marginBottom: 28 }}>
+                          <StatCard label="Total Posts"  value={(ordinalData.totals?.totalPosts || 0).toLocaleString()} accent="blue"    cls="d1" t={t} />
+                          <StatCard label="Published"    value={(ordinalData.totals?.posted || 0).toLocaleString()}     accent="green"   cls="d2" t={t} />
+                          <StatCard label="Ready"        value={(ordinalData.totals?.scheduled || 0).toLocaleString()}  accent="linkedin" cls="d3" t={t} />
+                          <StatCard label="Drafts"       value={(ordinalData.totals?.drafts || 0).toLocaleString()}     accent="blue"    cls="d4" t={t} />
+                        </div>
 
-                      {/* Posts Table */}
-                      <div style={{ background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 14, overflow: 'hidden' }}>
-                        <div style={{ padding: '18px 22px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
-                            LinkedIn Posts <span style={{ color: t.textMuted, fontWeight: 400, fontSize: 13 }}>({ordinalData.posts.length})</span>
+                        {/* Posts Table */}
+                        <div style={{ background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                          <div style={{ padding: '18px 22px', borderBottom: `1px solid ${t.border}` }}>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+                              LinkedIn Content <span style={{ color: t.textMuted, fontWeight: 400, fontSize: 13 }}>({ordinalData.posts.length} posts)</span>
+                            </div>
+                          </div>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                              <thead>
+                                <tr style={{ background: t.bgHover }}>
+                                  {['Post', 'Author', 'Status', 'Date', 'Images', ''].map(h => (
+                                    <TH key={h} t={t}>{h}</TH>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {ordinalData.posts.length === 0 && (
+                                  <tr><td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: t.textMuted, fontSize: 13 }}>No posts found</td></tr>
+                                )}
+                                {ordinalData.posts.map((p, i) => {
+                                  const sc = statusColor(p.status);
+                                  const dateStr = p.publishDate
+                                    ? new Date(p.publishDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                    : '—';
+                                  return (
+                                    <tr key={p.id} style={{ borderTop: `1px solid ${t.border}`, background: i % 2 === 0 ? 'transparent' : t.bgHover + '60' }}>
+                                      <td style={{ padding: '12px 14px', maxWidth: 340, color: t.text }}>
+                                        {p.title && (
+                                          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 3, color: t.text }}>{p.title}</div>
+                                        )}
+                                        <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5, fontSize: 12, color: t.textMuted }}>
+                                          {p.content || <span style={{ fontStyle: 'italic' }}>No text</span>}
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 12, whiteSpace: 'nowrap' }}>
+                                        {p.author || '—'}
+                                      </td>
+                                      <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                                        <span style={{ background: sc.bg, color: sc.text, borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 600 }}>
+                                          {sc.label}
+                                        </span>
+                                      </td>
+                                      <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 12, whiteSpace: 'nowrap' }}>
+                                        {dateStr}
+                                      </td>
+                                      <td style={{ padding: '12px 14px', color: p.hasAssets ? t.blue : t.textDim, fontSize: 12, textAlign: 'center' }}>
+                                        {p.hasAssets ? '🖼' : '—'}
+                                      </td>
+                                      <td style={{ padding: '12px 14px' }}>
+                                        {p.url && (
+                                          <a href={p.url} target="_blank" rel="noopener noreferrer"
+                                            style={{ fontSize: 11, color: t.blue, opacity: 0.8, whiteSpace: 'nowrap' }}>
+                                            View ↗
+                                          </a>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
-                        <div style={{ overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                              <tr style={{ background: t.bgHover }}>
-                                {['Post', 'Date', 'Impressions', 'Likes', 'Comments', 'Shares', 'Clicks', 'Engagement %'].map(h => (
-                                  <TH key={h} t={t}>{h}</TH>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {ordinalData.posts.length === 0 && (
-                                <tr><td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: t.textMuted, fontSize: 13 }}>No posts found</td></tr>
-                              )}
-                              {ordinalData.posts.map((p, i) => (
-                                <tr key={p.id} style={{ borderTop: `1px solid ${t.border}`, background: i % 2 === 0 ? 'transparent' : t.bgHover + '60' }}>
-                                  <td style={{ padding: '12px 14px', maxWidth: 300, color: t.text, fontSize: 12 }}>
-                                    <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.45 }}>
-                                      {p.content || <span style={{ color: t.textDim, fontStyle: 'italic' }}>No text</span>}
-                                    </div>
-                                    {p.url && (
-                                      <a href={p.url} target="_blank" rel="noopener noreferrer"
-                                        style={{ display: 'block', marginTop: 4, fontSize: 11, color: t.blue, opacity: 0.8 }}>
-                                        View post ↗
-                                      </a>
-                                    )}
-                                  </td>
-                                  <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, whiteSpace: 'nowrap' }}>
-                                    {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString() : '—'}
-                                  </td>
-                                  <td style={{ padding: '12px 14px', color: t.text, fontWeight: 600, fontSize: 12 }}>{p.impressions.toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px', color: t.green, fontWeight: 600, fontSize: 12 }}>{p.likes.toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px', color: t.linkedin, fontSize: 12 }}>{p.comments.toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{p.shares.toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px', color: t.blue, fontSize: 12 }}>{p.clicks.toLocaleString()}</td>
-                                  <td style={{ padding: '12px 14px' }}>
-                                    <span style={{ color: p.engagementRate >= 3 ? t.green : t.textMuted, fontWeight: 600, fontSize: 12 }}>
-                                      {p.engagementRate.toFixed(1)}%
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
