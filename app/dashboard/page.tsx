@@ -641,13 +641,14 @@ export default function DashboardPage() {
                         </div>
                         <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead><tr>{['Campaign', 'Status', 'Sent', 'Replies', 'Reply %'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
+                            <thead><tr>{['Campaign', 'Status', 'Started', 'Sent', 'Replies', 'Reply %'].map(h => <TH key={h} t={t}>{h}</TH>)}</tr></thead>
                             <tbody>
                               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {(paged as any[]).map((c: any) => (
                                 <tr key={c.id} className="trow" style={{ borderBottom: `1px solid ${t.border}` }}>
                                   <td style={{ padding: '12px 14px', color: t.text, fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
                                   <td style={{ padding: '12px 14px' }}><StatusBadge status={c.status} t={t} /></td>
+                                  <td style={{ padding: '12px 14px', color: t.textDim, fontSize: 11, whiteSpace: 'nowrap' }}>{c.startedAt ? new Date(c.startedAt).toLocaleDateString() : '—'}</td>
                                   <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.sent || 0).toLocaleString()}</td>
                                   <td style={{ padding: '12px 14px', color: t.textMuted, fontSize: 12 }}>{(c.replies || 0).toLocaleString()}</td>
                                   <td style={{ padding: '12px 14px' }}><span style={{ color: t.blue, fontWeight: 700, fontSize: 12 }}>{c.replyRate}%</span></td>
