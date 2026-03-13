@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
 
 // Admin-only debug endpoint — probes the Ordinal API and returns raw responses
 // Visit: /api/ordinal/probe?key=ord_xxxx  (must be logged in as admin)
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('token')?.value;
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const payload = verifyToken(token);
-  if (!payload || payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
   const key = req.nextUrl.searchParams.get('key');
   if (!key) return NextResponse.json({ error: 'key param required' }, { status: 400 });
 
